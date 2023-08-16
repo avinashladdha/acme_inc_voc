@@ -12,6 +12,17 @@ import numpy as np
 from collections import Counter
 from wordcloud import WordCloud, STOPWORDS
 from io import BytesIO # for wordcloud 
+
+
+## ingesting dataframe 
+
+list_adhoc = ['stars','Stars','STARS']
+stop_words = list(STOPWORDS) + list_adhoc
+data = pd.read_csv('./data/df_raw.csv')
+print(len(data))
+
+convert_to_str = ['star_rating','total_votes']
+data[convert_to_str] = data[convert_to_str].astype('str')
 ##############################################          FUNCTIONS             ##################################################
 def flatten_list(list_of_lists):
     return [item for sublist in list_of_lists for item in ast.literal_eval(sublist)]
@@ -30,16 +41,27 @@ def generate_table(dataframe, max_rows=100):
 
 def plot_wordcloud(list):
     d = Counter(list)
-    wc = WordCloud(background_color='white', width=1080, height=360,max_words=30)
+    wc = WordCloud(stopwords = stop_words,background_color='white', width=980, height=360,max_words=30)
     
     wc.fit_words(d)
     return wc.to_image()
 
-############################################# ############################################# ##########################################
-## ingesting dataframe 
 
-data = pd.read_csv('./data/df_raw.csv')
-print(len(data))
+# Function to filter dataframe from list of chosen filters 
+# filt_dict = {'star_rating': '2', 'sentiment_list': '',
+#              'verified_purchase': '', 'cc_votes': '', 'product_id': ''}
+filt_values = {'star_rating': ['1','2','3','4','5'], 'sentiment_tag': ['POSITIVE','NEGATIVE','NEUTRAL'],
+             'verified_purchase': ['Y','N'],
+               'total_votes': ['1','2','3','4','5'], 
+               'product_id': list(data['product_id'].unique())}
+
+def update_dictionary(input_dict):
+    for i in list(input_dict.keys()):
+        if input_dict[i] == '' or input_dict[i] == 'None' or input_dict[i] == None or input_dict[i]==[]: ## Also check for [] to address empty lists 
+            input_dict[i] = filt_values[i]
+    return input_dict
+############################################# ############################################# ##########################################
+
 
 
 # the style arguments for the sidebar.
@@ -48,7 +70,7 @@ SIDEBAR_STYLE = {
     'top': 0,
     'left': 0,
     'bottom': 0,
-    'width': '30%',
+    'width': '20%',
     'padding': '20px 10px',
     'background-color': '#f8f9fa',
     "overflow": "scroll"
@@ -56,7 +78,7 @@ SIDEBAR_STYLE = {
 
 # the style arguments for the main content page.
 CONTENT_STYLE = {
-    'margin-left': '35%',
+    'margin-left': '25%',
     'margin-right': '5%',
     'padding': '20px 10p'
 }
@@ -120,7 +142,7 @@ controls = dbc.FormGroup(
                     'value': '5'
                 }
             ],
-            value="",  # default value
+            value=['1','2','3','4','5'],  # default value
             multi=True
         ),
         html.Br(),
@@ -163,11 +185,11 @@ controls = dbc.FormGroup(
             options=[
                 {
                 'label': 'Yes',
-                'value': 'YES'
+                'value': 'Y'
                 },
                 {
                     'label': 'No',
-                    'value': 'NO'
+                    'value': 'N'
                 }
             ],
             value="",
@@ -177,27 +199,68 @@ controls = dbc.FormGroup(
 
         html.Br(),
 
+        # html.P('Votes on Reviews', style={
+        #     'textAlign': 'center'
+        # }),
+        # dcc.Input(id='cc_votes', value=list(data['total_votes'].unique())[0:3], type='text'),
+        # html.Br(),
+
         html.P('Votes on Reviews', style={
             'textAlign': 'center'
         }),
-        dcc.Input(id='cc_votes', value="", type='text'),
-        html.Br(),
-
-
-
-    html.P('Product Id', style={
-            'textAlign': 'center'
-        }),
         dcc.Dropdown(
-            id='product_id',
-            options=[{"label":str(i),"value":str(i)} for i in data['product_id'].unique()
+            id='cc_votes',
+            options=[{
+                'label': 'One',
+                'value': '1'
+            }, {
+                'label': 'Two',
+                'value': '2'
+            },
+                {
+                    'label': 'Three',
+                    'value': '3'
+                },
+            {
+                    'label': 'Four',
+                    'value': '4'
+                },
+            {
+                    'label': 'Five',
+                    'value': '5'
+                }
             ],
-            value='',  # default value
+            value=['1','2','3','4','5'],  # default value
             multi=True
         ),
         html.Br(),
 
+        
 
+    html.P('Product Id', style=
+           {'textAlign': 'center',
+            }),
+        dcc.Dropdown(
+            id='product_id',
+            options=[{"label":str(i),"value":str(i)} for i in data['product_id'].unique()
+            ],
+            value=list(data['product_id'].unique())[0:6],  # default value
+            multi=True,
+            style={
+                'maxHeight' :'50px',
+                'overflow-y':'auto'
+
+            }
+        ),
+        html.Br(),
+
+        dbc.Button(
+            id='clear_button',
+            n_clicks=0,
+            children='Clear',
+            color='primary',
+            block=True
+        ),
 
         dbc.Button(
             id='submit_button',
@@ -342,22 +405,35 @@ app.layout = html.Div([sidebar, content])
 ## TOTAL REVIEWS
 @app.callback(
     Output('card_text_1', 'children'),
-   # Input('submit_button', 'n_clicks'),
+    [Input('submit_button', 'n_clicks'),
     Input('my-date-picker-range', 'start_date'),
-    Input('my-date-picker-range', 'end_date') ,
-  #  [State('dropdown', 'value'), State('check_list', 'value'),
-    #  ]
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('sentiment_list', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('cc_votes', 'value'), 
+     State('product_id', 'value')
+     ]
    )
-#def update_card_text_1(n_clicks, dropdown_value, check_list_value, start_date, end_date):
-def update_card_text_1(start_date, end_date):
-    # print(n_clicks)
-    # print(dropdown_value)
-    # print(range_slider_value)
-    # print(check_list_value)
-    print(start_date)
-    temp_df = data[(data['review_date']>start_date)&(data['review_date']<end_date)]
-    #print(temp_df)
-    # Sample data and figure
+def update_card_text_1(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+
+    print("************************************")
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'total_votes' : cc_votes, 
+                 'product_id' : product_id}
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+
+
+    for key, val in filt_dict_updated.items():
+        print("Filtering {}".format(key))
+        temp_df = temp_df[temp_df[key].isin(val)]
+#        print("Len of dataframe = {}".format(len(temp_df)))
+
     return len(temp_df)
 
 
@@ -365,22 +441,34 @@ def update_card_text_1(start_date, end_date):
 ## POSITIVE REVIEWS
 @app.callback(
     Output('card_text_2', 'children'),
-   # Input('submit_button', 'n_clicks'),
+    [Input('submit_button', 'n_clicks'),
     Input('my-date-picker-range', 'start_date'),
-    Input('my-date-picker-range', 'end_date') ,
-  #  [State('dropdown', 'value'), State('check_list', 'value'),
-    #  ]
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('sentiment_list', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('cc_votes', 'value'), 
+     State('product_id', 'value')
+     ]
     )
-#def update_card_text_1(n_clicks, dropdown_value, check_list_value, start_date, end_date):
-def update_card_text_2(start_date, end_date):
-    # print(n_clicks)
-    # print(dropdown_value)
-    # print(range_slider_value)
-    # print(check_list_value)
-    print(start_date)
-    temp_df = data[(data['review_date']>start_date)&(data['review_date']<end_date)&(data['sentiment_tag']=="POSITIVE")]
-    #print(temp_df)
-    # Sample data and figure
+def update_card_text_2(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+
+    print("************************************")
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'total_votes' : cc_votes, 
+                 'product_id' : product_id}
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+
+
+    for key, val in filt_dict_updated.items():
+        print("Filtering {}".format(key))
+        temp_df = temp_df[temp_df[key].isin(val)]
+
+    temp_df = temp_df[(temp_df['review_date']>start_date)&(temp_df['review_date']<end_date)&(temp_df['sentiment_tag']=="POSITIVE")]
     return len(temp_df)
 
 
@@ -388,22 +476,34 @@ def update_card_text_2(start_date, end_date):
 ## NEGATIVE REVIEWS
 @app.callback(
     Output('card_text_3', 'children'),
-   # Input('submit_button', 'n_clicks'),
+    [Input('submit_button', 'n_clicks'),
     Input('my-date-picker-range', 'start_date'),
-    Input('my-date-picker-range', 'end_date') ,
-  #  [State('dropdown', 'value'), State('check_list', 'value'),
-    #  ]
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('sentiment_list', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('cc_votes', 'value'), 
+     State('product_id', 'value')]
     )
 #def update_card_text_1(n_clicks, dropdown_value, check_list_value, start_date, end_date):
-def update_card_text_3(start_date, end_date):
-    # print(n_clicks)
-    # print(dropdown_value)
-    # print(range_slider_value)
-    # print(check_list_value)
-    print(start_date)
-    temp_df = data[(data['review_date']>start_date)&(data['review_date']<end_date)&(data['sentiment_tag']=="NEGATIVE")]
-    #print(temp_df)
-    # Sample data and figure
+def update_card_text_3(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+
+    print("************************************")
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'total_votes' : cc_votes, 
+                 'product_id' : product_id}
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+
+
+    for key, val in filt_dict_updated.items():
+        print("Filtering {}".format(key))
+        temp_df = temp_df[temp_df[key].isin(val)]
+    temp_df = temp_df[(temp_df['review_date']>start_date)&(temp_df['review_date']<end_date)&(temp_df['sentiment_tag']=="NEGATIVE")]
+
     return len(temp_df)
 
 
@@ -411,26 +511,39 @@ def update_card_text_3(start_date, end_date):
 ## SENTIMENT SCORE
 @app.callback(
     Output('card_text_4', 'children'),
-   # Input('submit_button', 'n_clicks'),
+    [Input('submit_button', 'n_clicks'),
     Input('my-date-picker-range', 'start_date'),
-    Input('my-date-picker-range', 'end_date') ,
-  #  [State('dropdown', 'value'), State('check_list', 'value'),
-    #  ]
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('sentiment_list', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('cc_votes', 'value'), 
+     State('product_id', 'value')]
     )
 #def update_card_text_1(n_clicks, dropdown_value, check_list_value, start_date, end_date):
-def update_card_text_4(start_date, end_date):
-    # print(n_clicks)
-    # print(dropdown_value)
-    # print(range_slider_value)
-    # print(check_list_value)
-    print(start_date)
-    len_neg = len(data[(data['review_date']>start_date)&(data['review_date']<end_date)&(data['sentiment_tag']=="NEGATIVE")])
-    len_pos = len(data[(data['review_date']>start_date)&(data['review_date']<end_date)&(data['sentiment_tag']=="POSITIVE")])
+def update_card_text_4(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+
+    print("************************************")
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'total_votes' : cc_votes, 
+                 'product_id' : product_id}
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+
+
+    for key, val in filt_dict_updated.items():
+        print("Filtering {}".format(key))
+        temp_df = temp_df[temp_df[key].isin(val)]
+    temp_df = data[(data['review_date']>start_date)&(data['review_date']<end_date)&(data['sentiment_tag']=="NEGATIVE")]
+
+    len_neg = len(temp_df[(temp_df['review_date']>start_date)&(temp_df['review_date']<end_date)&(temp_df['sentiment_tag']=="NEGATIVE")])
+    len_pos = len(temp_df[(temp_df['review_date']>start_date)&(temp_df['review_date']<end_date)&(temp_df['sentiment_tag']=="POSITIVE")])
     #print(temp_df)
     # Sample data and figure
-    return round((100*(len_pos-len_neg)/(len_pos+len_neg)),1)
-
-
+    return round((100*(len_pos)/(len_pos+len_neg)),1)
 
 
 
@@ -438,13 +551,31 @@ def update_card_text_4(start_date, end_date):
     Output('graph_1', 'figure'),
     [Input('submit_button', 'n_clicks'),
     Input('my-date-picker-range', 'start_date'),
-    Input('my-date-picker-range', 'end_date')]
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('sentiment_list', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('cc_votes', 'value'), 
+     State('product_id', 'value')]
     )
-    # [State('dropdown', 'value'), State('range_slider', 'value'), State('check_list', 'value')
-    #  ])
-def update_graph_1(n_clicks,start_date, end_date):
 
-    temp_df = data[(data['review_date']>start_date)&(data['review_date']<end_date)]
+def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+
+    print("************************************")
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'total_votes' : cc_votes, 
+                 'product_id' : product_id}
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+
+
+    for key, val in filt_dict_updated.items():
+        print("Filtering {}".format(key))
+        temp_df = temp_df[temp_df[key].isin(val)]
 
     grouped_df = temp_df.groupby(['review_date','sentiment_tag'], as_index = False)['review_id'].count()
     grouped_df = grouped_df.fillna(0)
@@ -476,40 +607,6 @@ def update_graph_1(n_clicks,start_date, end_date):
         fig.data[idx].hovertemplate = name
     return fig
 
-## Wordcloud
-
-# @app.callback(
-#     #Output('graph_4', 'img'),
-#     Output('wordcloud_img', 'src'),
-#     [Input('submit_button', 'n_clicks'),
-#     Input('my-date-picker-range', 'start_date'),
-#     Input('my-date-picker-range', 'end_date')],
-#     State('star_rating', 'value'), 
-#     )
-
-# def update_graph_4(n_clicks, start_date, end_date,star_rating):
-#     print("*************")
-#     print("Star rating :{}".format(star_rating))
-#     star_rating_str = str(star_rating)[1:-1]
-#     # if star_rating is not None:
-#     #     temp_df = data[(data['review_date']>start_date)&(data['review_date']<end_date)]
-#     # else :
-#     #     temp_df = data[(data['review_date']>start_date)&(data['review_date']<end_date)&(data['star_rating'].isin(star_rating))]
-
-
-#     temp_df = data.query('review_date > @start_date & review_date < @end_date')
-
-
-#     print(len(temp_df))
-# # Sample data and figure
-#     img = BytesIO()
-#     word_list = flatten_list(temp_df['tags'].to_list())
-#     #print(word_list)
-#     fig = plot_wordcloud(word_list)
-#     fig.save(img, format="PNG")
-#     return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
-
-
 
 
 @app.callback(
@@ -523,131 +620,189 @@ def update_graph_1(n_clicks,start_date, end_date):
      State('verified_purchase', 'value'), 
      State('cc_votes', 'value'), 
      State('product_id', 'value')
-     
      ]
     )
-
-def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase, cc_votes, product_id):
+def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
     print("*************")
     print("Star rating :{}".format(star_rating))
     star_rating_str = str(star_rating)[1:-1]
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
-    filt_temp = [star_rating,sentiment_list, verified_purchase, cc_votes, product_id]
-    print("Filt temp :{}".format(filt_temp))
-    filt_temp_na = [i for i in filt_temp if len(i)>0]
+    print("************************************")
 
-    print(filt_temp_na)
-    print(len(temp_df))
-# Sample data and figure
-    img = BytesIO()
-    word_list = flatten_list(temp_df['tags'].to_list())
-    #print(word_list)
-    fig = plot_wordcloud(word_list)
-    fig.save(img, format="PNG")
-    return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'total_votes' : cc_votes, 
+                 'product_id' : product_id}
+    
+    filt_dict_updated = update_dictionary(filt_dict)
 
 
+    print("Filtered dictionary :{}".format(filt_dict_updated))
 
+    for key, val in filt_dict_updated.items():
+        print("Filtering {}".format(key))
+        temp_df = temp_df[temp_df[key].isin(val)]
+        print("Len of dataframe = {}".format(len(temp_df)))
+    if len(temp_df) >0:
+
+    # Sample data and figure
+        img = BytesIO()
+        word_list = flatten_list(temp_df['tags'].to_list())
+        #print(word_list)
+        fig = plot_wordcloud(word_list)
+        fig.save(img, format="PNG")
+
+        return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
+    else :
+        return str({"update"})
 
 #####################################################################################
 
 
 
 
-
-
 @app.callback(
-    Output('graph_2', 'figure'),
-    [Input('submit_button', 'n_clicks')],
-    [State('dropdown', 'value'), State('check_list', 'value')
-
-     ])
-def update_graph_2(n_clicks, dropdown_value, range_slider_value, check_list_value):
-    print(n_clicks)
-    print(dropdown_value)
-    print(range_slider_value)
-    print(check_list_value)
-
-    fig = {
-        'data': [{
-            'x': [1, 2, 3],
-            'y': [3, 4, 5],
-            'type': 'bar'
-        }]
-    }
-    return fig
-
-
-@app.callback(
-    Output('graph_3', 'figure'),
-    [Input('submit_button', 'n_clicks')],
-    [State('dropdown', 'value'), State('range_slider', 'value'), State('check_list', 'value'),
-
-     ])
-def update_graph_3(n_clicks, dropdown_value, range_slider_value, check_list_value, ):
-    print(n_clicks)
-    print(dropdown_value)
-    print(range_slider_value)
-    print(check_list_value)
- 
-    df = px.data.iris()
-    fig = px.density_contour(df, x='sepal_width', y='sepal_length')
-    return fig
-
-
-@app.callback(
-    Output('graph_4', 'figure'),
-    [Input('submit_button', 'n_clicks')],
-    [State('dropdown', 'value'), State('range_slider', 'value'), State('check_list', 'value'),
-     
-     ])
-def update_graph_4(n_clicks, dropdown_value, range_slider_value, check_list_value, ):
-    print(n_clicks)
-    print(dropdown_value)
-    print(range_slider_value)
-    print(check_list_value)
-# Sample data and figure
-    df = px.data.gapminder().query('year==2007')
-    fig = px.scatter_geo(df, locations='iso_alpha', color='continent',
-                         hover_name='country', size='pop', projection='natural earth')
-    fig.update_layout({
-        'height': 600
-    })
-    return fig
-
-
-@app.callback(
+    #Output('graph_4', 'img'),
     Output('graph_5', 'figure'),
-    [Input('submit_button', 'n_clicks')],
-    [State('dropdown', 'value'), State('range_slider', 'value'), State('check_list', 'value'),
-   
-     ])
-def update_graph_5(n_clicks, dropdown_value, range_slider_value, check_list_value):
-    print(n_clicks)
-    print(dropdown_value)
-    print(range_slider_value)
-    print(check_list_value)
-    # Sample data and figure
-    df = px.data.iris()
-    fig = px.scatter(df, x='sepal_width', y='sepal_length')
-    return fig
-
-
-@app.callback(
-    Output('graph_6', 'figure'),
-    [Input('submit_button', 'n_clicks')],
-    [State('dropdown', 'value'), State('range_slider', 'value'), State('check_list', 'value'),
+    [Input('submit_button', 'n_clicks'),
+    Input('my-date-picker-range', 'start_date'),
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('sentiment_list', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('cc_votes', 'value'), 
+     State('product_id', 'value')
+     ]
+    )
+def update_graph_5(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+    print("*************")
+    print("Star rating :{}".format(star_rating))
+    star_rating_str = str(star_rating)[1:-1]
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+    print("************************************")
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'total_votes' : cc_votes, 
+                 'product_id' : product_id}
     
-     ])
-def update_graph_6(n_clicks, dropdown_value, range_slider_value, check_list_value):
-    print(n_clicks)
-    print(dropdown_value)
-    print(range_slider_value)
-    print(check_list_value)
-  # Sample data and figure
-    df = px.data.tips()
-    fig = px.bar(df, x='total_bill', y='day', orientation='h')
-    return fig
+    filt_dict_updated = update_dictionary(filt_dict)
+
+
+    print("Filtered dictionary :{}".format(filt_dict_updated))
+
+    for key, val in filt_dict_updated.items():
+        print("Filtering {}".format(key))
+        temp_df = temp_df[temp_df[key].isin(val)]
+        print("Len of dataframe = {}".format(len(temp_df)))
+
+    grouped_df = temp_df.groupby(['star_rating'], as_index= False)['review_id'].count()
+
+    if len(temp_df) >0:
+        fig = go.Figure([go.Bar(x = grouped_df['review_id'], y = grouped_df['star_rating'], marker_color = '#FA8072',
+                             orientation = 'h',
+                             textposition = 'outside'
+                             ),
+                 ])
+        
+
+        fig.update_xaxes(showline=True,
+                linewidth=1,
+                linecolor='grey',
+                mirror=True)
+
+        fig.update_yaxes(showline=True,
+                linewidth=1,
+                linecolor='grey',
+                mirror=True)
+
+        return fig
+    else :
+        return str({"update"})
+
+#####################################################################################
+
+
+        
+@app.callback(
+    #Output('graph_4', 'img'),
+    Output('graph_6', 'figure'),
+    [Input('submit_button', 'n_clicks'),
+    Input('my-date-picker-range', 'start_date'),
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('sentiment_list', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('cc_votes', 'value'), 
+     State('product_id', 'value')
+     ]
+    )
+def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+    print("*************")
+    print("Star rating :{}".format(star_rating))
+    star_rating_str = str(star_rating)[1:-1]
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+
+
+    print("************************************")
+
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'total_votes' : cc_votes, 
+                 'product_id' : product_id}
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+
+
+    print("Filtered dictionary :{}".format(filt_dict_updated))
+
+    for key, val in filt_dict_updated.items():
+        print("Filtering {}".format(key))
+        temp_df = temp_df[temp_df[key].isin(val)]
+        print("Len of dataframe = {}".format(len(temp_df)))
+
+    grouped_df = temp_df.groupby(['sentiment_tag'], as_index= False)['review_id'].count()
+
+    if len(temp_df) >0:
+        fig =  px.pie(
+          grouped_df,
+            values='review_id',
+            names='sentiment_tag',
+            hole=.3,
+            )
+        return fig
+    else :
+        return str({"update"})
+
+#####################################################################################       
+
+
+
+
+#Update dropDown1 options
+@app.callback([
+        Output('my-date-picker-range', 'start_date'),
+        Output('my-date-picker-range', 'end_date'),
+        Output('star_rating', 'value'), 
+        Output('sentiment_list', 'value'), 
+        Output('verified_purchase', 'value'), 
+        Output('cc_votes', 'value'), 
+        Output('product_id', 'value')],
+        [Input('clear_button', 'n_clicks')],
+        )
+
+def clearDropDown1(n_clicks):
+    if n_clicks != 0: #Don't clear options when loading page for the first time
+        return ['2015-07-01','2015-09-15',['1','2','3','4','5'],['POSITIVE','NEGATIVE','NEUTRAL'],
+             ['Y','N'],
+             ['1','2','3','4','5'], 
+             list(data['product_id'].unique())
+               ] #Return an empty list of options
+
+
+
 
 
 
@@ -734,3 +889,15 @@ if __name__ == '__main__':
         #     value=['value1', 'value2'],
         #     inline=True
         # )]),
+
+
+
+
+    # print("filt_dict_updated :{}".format(filt_dict_updated))
+
+    # mask = pd.concat([temp_df[k].isin(v) for k, v in filt_dict_updated.items()], axis=1).all(axis=1)
+
+    # filt_temp_na = temp_df[mask]
+    # print("Len of FILTERED dataframe : {}".format(len(filt_temp_na)))
+    # print("-------------")
+
