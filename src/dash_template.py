@@ -1,6 +1,6 @@
 import dash
 import dash_bootstrap_components as dbc
-from dash import dcc,html
+from dash import dcc,html, dash_table
 import ast
 from dash.dependencies import Input, Output, State
 import pandas as pd
@@ -14,15 +14,8 @@ from wordcloud import WordCloud, STOPWORDS
 from io import BytesIO # for wordcloud 
 
 
-## ingesting dataframe 
 
-list_adhoc = ['stars','Stars','STARS']
-stop_words = list(STOPWORDS) + list_adhoc
-data = pd.read_csv('./data/df_raw.csv')
-print(len(data))
 
-convert_to_str = ['star_rating','total_votes']
-data[convert_to_str] = data[convert_to_str].astype('str')
 ##############################################          FUNCTIONS             ##################################################
 def flatten_list(list_of_lists):
     return [item for sublist in list_of_lists for item in ast.literal_eval(sublist)]
@@ -39,28 +32,56 @@ def generate_table(dataframe, max_rows=100):
         ]) for i in range(min(len(dataframe), max_rows))]
     )
 
+def top_keywords_df(list):
+    list_updated = [word for word in list if word not in stop_words] 
+    d = Counter(list_updated)
+    keyword_df_temp = pd.DataFrame(d,index=[0]).T.reset_index()
+    keyword_df_temp.columns = ['Keyword', "Count"]
+    keyword_df_temp = keyword_df_temp.sort_values(["Count"], ascending = False)
+    return keyword_df_temp
+
 def plot_wordcloud(list):
-    d = Counter(list)
-    wc = WordCloud(stopwords = stop_words,background_color='white', width=980, height=360,max_words=30)
+    list_updated = [word for word in list if word not in stop_words] 
+    d = Counter(list_updated)
+    wc = WordCloud(stopwords = stop_words,background_color='white', width=700, height=500,max_words=30)
     
     wc.fit_words(d)
     return wc.to_image()
 
 
 # Function to filter dataframe from list of chosen filters 
-# filt_dict = {'star_rating': '2', 'sentiment_list': '',
-#              'verified_purchase': '', 'cc_votes': '', 'product_id': ''}
-filt_values = {'star_rating': ['1','2','3','4','5'], 'sentiment_tag': ['POSITIVE','NEGATIVE','NEUTRAL'],
-             'verified_purchase': ['Y','N'],
-               'total_votes': ['1','2','3','4','5'], 
-               'product_id': list(data['product_id'].unique())}
+
 
 def update_dictionary(input_dict):
     for i in list(input_dict.keys()):
         if input_dict[i] == '' or input_dict[i] == 'None' or input_dict[i] == None or input_dict[i]==[]: ## Also check for [] to address empty lists 
             input_dict[i] = filt_values[i]
     return input_dict
-############################################# ############################################# ##########################################
+#############################################               DATA           ################### ##########################################
+
+## ingesting dataframe 
+
+list_adhoc = ['stars','Stars','STARS', 'star']
+stop_words = list(STOPWORDS) + list_adhoc
+data = pd.read_csv('./data/df_raw.csv')
+print(len(data))
+
+convert_to_str = ['star_rating','total_votes']
+data[convert_to_str] = data[convert_to_str].astype('str')
+
+#making a keyword dataframe
+
+keyword_df = top_keywords_df(flatten_list(data['tags'].to_list()))
+print(keyword_df.head())
+
+
+## data reuired for functions
+filt_values = {'star_rating': ['1','2','3','4','5'], 'sentiment_tag': ['POSITIVE','NEGATIVE'],
+             'verified_purchase': ['Y','N'],
+               'total_votes': ['1','2','3','4','5'], 
+               'product_id': list(data['product_id'].unique())}
+
+
 
 
 
@@ -91,6 +112,11 @@ TEXT_STYLE = {
 CARD_TEXT_STYLE = {
     'textAlign': 'center',
     'color': '#0074D9'
+}
+
+CARD_TEXT_STYLE_SMALL = {
+    'textAlign': 'center',
+    'color': '#D3D3D3'
 }
 
 controls = dbc.FormGroup(
@@ -162,10 +188,6 @@ controls = dbc.FormGroup(
                 {
                     'label': 'Negative',
                     'value': 'NEGATIVE'
-                },
-                {
-                    'label': 'Neutral',
-                    'value': 'NEUTRAL'
                 }
             ],
             value="",
@@ -247,8 +269,8 @@ controls = dbc.FormGroup(
             value=list(data['product_id'].unique())[0:6],  # default value
             multi=True,
             style={
-                'maxHeight' :'50px',
-                'overflow-y':'auto'
+                'maxHeight' :'200px',
+                #'overflow-y':'auto'
 
             }
         ),
@@ -257,7 +279,7 @@ controls = dbc.FormGroup(
         dbc.Button(
             id='clear_button',
             n_clicks=0,
-            children='Clear',
+            children='Remove All Filters',
             color='primary',
             block=True
         ),
@@ -265,7 +287,7 @@ controls = dbc.FormGroup(
         dbc.Button(
             id='submit_button',
             n_clicks=0,
-            children='Submit',
+            children='Apply Filters',
             color='primary',
             block=True
         ),
@@ -332,6 +354,7 @@ content_first_row = dbc.Row([
                 dbc.CardBody(
                     [
                         html.H4('Sentiment score', className='card-title', style=CARD_TEXT_STYLE),
+                        html.H6('Percentage of positive reviews across the feedback.'),
                         html.P(id='card_text_4', children=' ', style=CARD_TEXT_STYLE),
                     ]
                 ),
@@ -344,8 +367,9 @@ content_first_row = dbc.Row([
 content_second_row = dbc.Row(
     [
         dbc.Col(
-            dcc.Graph(id='graph_1'), md=12
+            dcc.Graph(id='graph_1'), md=8
         ),
+
         # dbc.Col(
         #     dcc.Graph(id='graph_2'), md=4
         # ),
@@ -360,32 +384,57 @@ content_third_row = dbc.Row(
         dbc.Col(
             
             #dcc.Graph(id='graph_4', figure="fig"), #md=12,
-            html.Img(id ="wordcloud_img")
+            html.Img(id ="wordcloud_img") , md = 8
+        ),
+        # dbc.Col(
+        #     dbc.Card(
+
+        #             dbc.CardBody(
+        #                 [
+        #                     html.H4(id='card_title_filter', children=['Reviews considered for graph'], className='card-title',
+        #                             style=CARD_TEXT_STYLE),
+        #                     html.P(id='card_text_filter', children='children', style=CARD_TEXT_STYLE_SMALL),
+        #                 ]
+        #             )
+        
+        #     ),md = 3
+            
+        # ),
+
+         dbc.Col(
+            dash_table.DataTable(
+            id='table_kw',
+            columns=[{"name": i, "id": i} for i in keyword_df.columns],
+            #data=keyword_df.head(10).to_dict('records'),
+        ), md=3
         )
+
+
     ]
 )
 
 content_fourth_row = dbc.Row(
     [
         dbc.Col(
-            dcc.Graph(id='graph_5'), md=6
+            dcc.Graph(id='graph_5'),md=5
         ),
         dbc.Col(
-            dcc.Graph(id='graph_6'), md=6
-        )
+            dcc.Graph(id='graph_6'),md=5
+        ),
     ]
 )
 
 content = html.Div(
     [
         html.H2('Vire Insights | VoC v1.0', style=TEXT_STYLE),
-        
         html.H4('Overall summary for selected time window', style=TEXT_STYLE),
         html.Hr(),
         content_first_row,
+        html.Hr(),
         content_second_row,
-
-        html.H4('Review profiling:', style=TEXT_STYLE),
+        html.H3('Review profiling', style=TEXT_STYLE),
+        html.Div(    
+            [html.Label('Count of reviews filtered for analysis:'),html.P(html.Div(id='count_header'))]),
         html.Hr(),
         content_third_row,
         content_fourth_row
@@ -404,7 +453,8 @@ app.layout = html.Div([sidebar, content])
 
 ## TOTAL REVIEWS
 @app.callback(
-    Output('card_text_1', 'children'),
+    [Output('card_text_1', 'children'),
+    Output('count_header','children')],
     [Input('submit_button', 'n_clicks'),
     Input('my-date-picker-range', 'start_date'),
     Input('my-date-picker-range', 'end_date')],
@@ -430,12 +480,11 @@ def update_card_text_1(n_clicks, start_date, end_date,star_rating, sentiment_lis
 
 
     for key, val in filt_dict_updated.items():
-        print("Filtering {}".format(key))
+        #print("Filtering {}".format(key))
         temp_df = temp_df[temp_df[key].isin(val)]
 #        print("Len of dataframe = {}".format(len(temp_df)))
 
-    return len(temp_df)
-
+    return len(temp_df),len(temp_df)
 
 
 ## POSITIVE REVIEWS
@@ -465,12 +514,11 @@ def update_card_text_2(n_clicks, start_date, end_date,star_rating, sentiment_lis
 
 
     for key, val in filt_dict_updated.items():
-        print("Filtering {}".format(key))
+        #print("Filtering {}".format(key))
         temp_df = temp_df[temp_df[key].isin(val)]
 
     temp_df = temp_df[(temp_df['review_date']>start_date)&(temp_df['review_date']<end_date)&(temp_df['sentiment_tag']=="POSITIVE")]
     return len(temp_df)
-
 
 
 ## NEGATIVE REVIEWS
@@ -485,7 +533,7 @@ def update_card_text_2(n_clicks, start_date, end_date,star_rating, sentiment_lis
      State('cc_votes', 'value'), 
      State('product_id', 'value')]
     )
-#def update_card_text_1(n_clicks, dropdown_value, check_list_value, start_date, end_date):
+    #def update_card_text_1(n_clicks, dropdown_value, check_list_value, start_date, end_date):
 def update_card_text_3(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
 
@@ -500,7 +548,7 @@ def update_card_text_3(n_clicks, start_date, end_date,star_rating, sentiment_lis
 
 
     for key, val in filt_dict_updated.items():
-        print("Filtering {}".format(key))
+        #print("Filtering {}".format(key))
         temp_df = temp_df[temp_df[key].isin(val)]
     temp_df = temp_df[(temp_df['review_date']>start_date)&(temp_df['review_date']<end_date)&(temp_df['sentiment_tag']=="NEGATIVE")]
 
@@ -520,7 +568,7 @@ def update_card_text_3(n_clicks, start_date, end_date,star_rating, sentiment_lis
      State('cc_votes', 'value'), 
      State('product_id', 'value')]
     )
-#def update_card_text_1(n_clicks, dropdown_value, check_list_value, start_date, end_date):
+    #def update_card_text_1(n_clicks, dropdown_value, check_list_value, start_date, end_date):
 def update_card_text_4(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
 
@@ -535,7 +583,7 @@ def update_card_text_4(n_clicks, start_date, end_date,star_rating, sentiment_lis
 
 
     for key, val in filt_dict_updated.items():
-        print("Filtering {}".format(key))
+        #print("Filtering {}".format(key))
         temp_df = temp_df[temp_df[key].isin(val)]
     temp_df = data[(data['review_date']>start_date)&(data['review_date']<end_date)&(data['sentiment_tag']=="NEGATIVE")]
 
@@ -546,7 +594,7 @@ def update_card_text_4(n_clicks, start_date, end_date,star_rating, sentiment_lis
     return round((100*(len_pos)/(len_pos+len_neg)),1)
 
 
-
+## LINE CHART 
 @app.callback(
     Output('graph_1', 'figure'),
     [Input('submit_button', 'n_clicks'),
@@ -574,7 +622,7 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
 
 
     for key, val in filt_dict_updated.items():
-        print("Filtering {}".format(key))
+        #print("Filtering {}".format(key))
         temp_df = temp_df[temp_df[key].isin(val)]
 
     grouped_df = temp_df.groupby(['review_date','sentiment_tag'], as_index = False)['review_id'].count()
@@ -593,7 +641,7 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     y2 = pivot_df['pos_cc']
     fig = px.line(x=x, y = [y1,y2])
     # Change title 
-    fig.update_layout(title='Count of Reviews')
+    fig.update_layout(title='Trendline of feedback sentiment')
     # Change the x-axis name
     fig.update_xaxes(title='Date')
     # Change the y-axis name
@@ -608,7 +656,7 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     return fig
 
 
-
+## WORDCLOUD 
 @app.callback(
     #Output('graph_4', 'img'),
     Output('wordcloud_img', 'src'),
@@ -624,8 +672,7 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     )
 def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
     print("*************")
-    print("Star rating :{}".format(star_rating))
-    star_rating_str = str(star_rating)[1:-1]
+
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
     print("************************************")
 
@@ -638,7 +685,7 @@ def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     filt_dict_updated = update_dictionary(filt_dict)
 
 
-    print("Filtered dictionary :{}".format(filt_dict_updated))
+    #print("Filtered dictionary :{}".format(filt_dict_updated))
 
     for key, val in filt_dict_updated.items():
         print("Filtering {}".format(key))
@@ -659,9 +706,50 @@ def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, v
 
 #####################################################################################
 
+## KEYWORD TABLE
+@app.callback(
+    Output('table_kw', 'data'),
+    [Input('submit_button', 'n_clicks'),
+    Input('my-date-picker-range', 'start_date'),
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('sentiment_list', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('cc_votes', 'value'), 
+     State('product_id', 'value')
+     ]
+    )
+def update_keyword_table(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
 
 
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+    print("************************************")
 
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'total_votes' : cc_votes, 
+                 'product_id' : product_id}
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+    print("Filtered dictionary :{}".format(filt_dict_updated))
+
+    for key, val in filt_dict_updated.items():
+        print("Filtering {}".format(key))
+        temp_df = temp_df[temp_df[key].isin(val)]
+        print("Len of dataframe = {}".format(len(temp_df)))
+        print("Top KW dataframe...")
+        print(top_keywords_df(flatten_list(temp_df['tags'].to_list())))
+
+    if len(temp_df) >0:
+        keyword_df = top_keywords_df(flatten_list(temp_df['tags'].to_list()))
+        print(keyword_df)
+        return keyword_df.head(10).to_dict('rows')
+    
+    else :
+        return "Insufficient data"
+
+## HORIZONTAL BAR CHART
 @app.callback(
     #Output('graph_4', 'img'),
     Output('graph_5', 'figure'),
@@ -724,7 +812,7 @@ def update_graph_5(n_clicks, start_date, end_date,star_rating, sentiment_list, v
 #####################################################################################
 
 
-        
+ ## PIE CHART       
 @app.callback(
     #Output('graph_4', 'img'),
     Output('graph_6', 'figure'),
@@ -780,7 +868,6 @@ def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, v
 
 
 
-
 #Update dropDown1 options
 @app.callback([
         Output('my-date-picker-range', 'start_date'),
@@ -795,7 +882,7 @@ def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, v
 
 def clearDropDown1(n_clicks):
     if n_clicks != 0: #Don't clear options when loading page for the first time
-        return ['2015-07-01','2015-09-15',['1','2','3','4','5'],['POSITIVE','NEGATIVE','NEUTRAL'],
+        return ['2015-07-01','2015-09-15',['1','2','3','4','5'],['POSITIVE','NEGATIVE'],
              ['Y','N'],
              ['1','2','3','4','5'], 
              list(data['product_id'].unique())
@@ -815,89 +902,4 @@ if __name__ == '__main__':
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-# Extra code to be removed in cleaning 
-# @app.callback(
-#     Output('card_title_1', 'children'),
-#     [Input('submit_button', 'n_clicks')],
-#     [State('dropdown', 'value'), State('range_slider', 'value'), State('check_list', 'value'),
-
-#      ])
-# def update_card_title_1(n_clicks, dropdown_value, range_slider_value, check_list_value):
-#     print(n_clicks)
-#     print(dropdown_value)
-#     print(range_slider_value)
-#     print(check_list_value)
-#  # Sample data and figure
-#     return 'Card Tile 1 change by call back'
-
-
-
-# @app.callback(
-#     Output('graph_1', 'figure'),
-#     [Input('submit_button', 'n_clicks'),
-#      Input('my-date-picker-range', 'start_date'),
-#     Input('my-date-picker-range', 'end_date')]
-
-#     # [State('dropdown', 'value'), State('range_slider', 'value'), State('check_list', 'value')
-#     #  ])
-# def update_graph_1(n_clicks, dropdown_value, range_slider_value, check_list_value):
-#     print(n_clicks)
-#     print(dropdown_value)
-#     print(range_slider_value)
-#     print(check_list_value)
-
-#     fig = {
-#         'data': [{
-#             'x': [1, 2, 3],
-#             'y': [3, 4, 5]
-#         }]
-#     }
-#     return fig
-
-
-
-        # html.P('Check Box', style={
-        #     'textAlign': 'center'
-        # }),
-        # dbc.Card([dbc.Checklist(
-        #     id='check_list',
-        #     options=[{
-        #         'label': 'Value One',
-        #         'value': 'value1'
-        #     },
-        #         {
-        #             'label': 'Value Two',
-        #             'value': 'value2'
-        #         },
-        #         {
-        #             'label': 'Value Three',
-        #             'value': 'value3'
-        #         }
-        #     ],
-        #     value=['value1', 'value2'],
-        #     inline=True
-        # )]),
-
-
-
-
-    # print("filt_dict_updated :{}".format(filt_dict_updated))
-
-    # mask = pd.concat([temp_df[k].isin(v) for k, v in filt_dict_updated.items()], axis=1).all(axis=1)
-
-    # filt_temp_na = temp_df[mask]
-    # print("Len of FILTERED dataframe : {}".format(len(filt_temp_na)))
-    # print("-------------")
 
