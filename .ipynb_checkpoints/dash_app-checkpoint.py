@@ -12,6 +12,7 @@ import numpy as np
 from collections import Counter
 from wordcloud import WordCloud, STOPWORDS
 from io import BytesIO # for wordcloud 
+from datetime import datetime, timedelta
 
 
 
@@ -45,7 +46,7 @@ def top_keywords_df(list):
 def plot_wordcloud(list):
     list_updated = [word for word in list if word not in stop_words] 
     d = Counter(list_updated)
-    wc = WordCloud(stopwords = stop_words,background_color='white', width=700, height=500,max_words=30)
+    wc = WordCloud(stopwords = stop_words,background_color='white', width=550, height=400,max_words=30)
     
     wc.fit_words(d)
     return wc.to_image()
@@ -66,14 +67,31 @@ def update_dictionary(input_dict):
 list_adhoc = ['stars','Stars','STARS', 'star']
 stop_words = list(STOPWORDS) + list_adhoc
 data = pd.read_csv('./data/df_raw.csv')
+
+
+print(data.columns)
+
+## Adding biins for dropdown display
+bins = [-1,0, 10, 50, 5000]
+data['binned'] = pd.cut(data['total_votes'], bins) #left open binning
+votes_df = pd.DataFrame()
+votes_df['label'] =['1-10','0','11-50','50+']
+votes_df['value'] = [str(i) for i in data['binned'].unique()]
+votes_dict = votes_df.to_dict('records')
+# (-1, 0]      6201
+# (0, 1]       1773
+# (10, 50]      279
+# (50, 500]      46
+
 ## limiting to top 10 products id 
 
-prod_list = list(data['product_id'].value_counts()[0:11].keys())
-data["product_id"] = np.random.choice(prod_list, size=len(data))
+date_list = pd.date_range(datetime(2021,1,1),datetime(2023,8,22)-timedelta(days=1),freq='d')
+data["review_date"] = np.random.choice(date_list, size=len(data))
 
 print("Total count of rows at starteing of code :{}".format(len(data)))
 
-convert_to_str = ['star_rating','total_votes']
+
+convert_to_str = ['star_rating','total_votes','binned']
 data[convert_to_str] = data[convert_to_str].astype('str')
 
 #making a keyword dataframe
@@ -83,12 +101,10 @@ keyword_df = top_keywords_df(flatten_list(data['tags'].to_list()))
 ## data reuired for functions
 filt_values = {'star_rating': ['1','2','3','4','5'], 'sentiment_tag': ['POSITIVE','NEGATIVE'],
              'verified_purchase': ['Y','N'],
-               'total_votes': list(data['total_votes'].unique()), 
+               'binned': ['(-1, 0]', '(0, 10]', '(10, 50]', '(50, 5000]'], 
                'product_id': list(data['product_id'].unique())}
 
-
-
-
+review_cols = ['customer_id','review_id','product_id','review_date','review_body']
 
 # the style arguments for the sidebar.
 SIDEBAR_STYLE = {
@@ -96,7 +112,7 @@ SIDEBAR_STYLE = {
     'top': 0,
     'left': 0,
     'bottom': 0,
-    'width': '20%',
+    'width': '25%',
     'padding': '20px 10px',
     'background-color': '#f8f9fa',
     "overflow": "scroll"
@@ -131,14 +147,14 @@ controls = dbc.FormGroup(
         }),
             dcc.DatePickerRange(
             id='my-date-picker-range',
-            min_date_allowed=date(2015, 8, 5),
-            max_date_allowed=date(2016, 9, 1),
-            initial_visible_month=date(2015, 8, 16),
-            end_date=date(2015, 9, 1), 
-            start_date=date(2015, 8, 23),
+            min_date_allowed=date(2020, 12, 5),
+            max_date_allowed=date(2023, 8, 23),
+            initial_visible_month=date(2023, 7, 16),
+            end_date=date(2023, 7, 1), 
+            start_date=date(2023, 6, 23),
             
             style = {
-                        'font-size': '6px','display': 'inline-block', 'border-radius' : '2px', 
+                        'font-size': '5px','display': 'inline-block', 'border-radius' : '2px', 
                         'border' : '1px solid #ccc', 'color': '#333', 
                         'border-spacing' : '0', 'border-collapse' :'separate',
                         'zIndex': 10
@@ -237,13 +253,12 @@ controls = dbc.FormGroup(
         }),
         dcc.Dropdown(
             id='cc_votes',
-            options=[{"label":str(i),"value":str(i)} for i in data['total_votes'].unique()],
-            value=['1','2','3'],  # default value
+            options=votes_dict,
+            value=['(-1, 0]', '(0, 10]', '(10, 50]', '(50, 5000]'],  # default value
             multi=True,
             style={
-                'maxHeight' :'150px',
-                #'height' :'100px',
-                'overflow-y':'auto'
+                'maxHeight' :'500px',
+                'minHeight' :'50px',
 
             }
         ),
@@ -254,19 +269,20 @@ controls = dbc.FormGroup(
     html.P('Product Id', style=
            {'textAlign': 'center',
             }),
-        dcc.Dropdown(
+        html.Div([dcc.Dropdown(
             id='product_id',
             options=[{"label":str(i),"value":str(i)} for i in data['product_id'].unique()
             ],
             value=list(data['product_id'].unique())[0:10],  # default value
             multi=True,
             style={
-                'maxHeight' :'200px',
+                'maxHeight' :'500px',
+                'minHeight' :'50px',
                 #'height' :'200px',
-                'overflow-y':'auto'
+                #'overflow-y':'auto'
 
             }
-        ),
+        )]),
         html.Br(),
 
         dbc.Button(
@@ -284,6 +300,13 @@ controls = dbc.FormGroup(
             color='primary',
             block=True
         ),
+        # dbc.Button(
+        #     id='last_30_days',
+        #     n_clicks=0,
+        #     children='Last 30 days',
+        #     color='primary',
+        #     block=True
+        #)
     ]
 )
 
@@ -301,17 +324,32 @@ content_summary_row = dbc.Row([
     dbc.Col(
     dcc.Textarea(
         id='textarea-example',
-        value="""OVERALL SUMMARY [no subsetting, analysis on total 10k reviews]:\n\nBased on the analysis of the reviews, most customers are satisfied with their purchases, as indicated by the high number of positive reviews and common positive tags such as 'love', 'good', 'great', 'nice', 'perfect', 'product', 'awesome', and 'comfortable'. However, there are also a significant number of negative reviews, particularly for products with the IDs B006MIUM20, B002NS0ZCK, B001FB5LE8, B005KUVZEA, B009YPRRZ8, B00PBQ7EA2, and B004LQ1RKQ. Common issues mentioned in negative reviews include the size of the products, difficulty in assembly, and issues with the quality of mattresses or bed frames. These issues should be addressed to improve customer satisfaction""",
-        style={'width': '100%', 'height': 300},
+        value="""OVERALL SUMMARY:\n\nBased on the analysis of the reviews, most customers are satisfied with their purchases, as indicated by the high number of positive reviews and common positive tags such as 'love', 'good', 'great', 'nice', 'perfect', 'product', 'awesome', and 'comfortable'. However, there are also a significant number of negative reviews, particularly for products with the IDs B006MIUM20, B002NS0ZCK, B001FB5LE8, B005KUVZEA, B009YPRRZ8, B00PBQ7EA2, and B004LQ1RKQ. Common issues mentioned in negative reviews include the size of the products, difficulty in assembly, and issues with the quality of mattresses or bed frames. These issues should be addressed to improve customer satisfaction""",
+        style={'width': '100%', 'min-height': "300px", 'max-height': "300px",'resize':None,'disabled':True},
     )
     ),
     dbc.Col(
         
-        dcc.Textarea(
+        [dcc.Textarea(
         id='textarea-example-2',
-        value="""What USERS like/gave positive feedback about [no subsetting, analysis on total 10k reviews]:\n\n -The 'price' of the products was also appreciated by the customers.\n- Customers also liked the 'size' of the products.\n- The 'finish' of the products was also mentioned positively by the customers.\n- The 'comfort' provided by the products was also appreciated.\n- Customers also liked the 'design' of the products.\n- The 'quality' of the products was also mentioned positively by the customers.\n- The 'durability' of the products was also appreciated by the customers.\n- Customers also liked the 'easy to assemble' feature of the products.\n- The 'value for money' aspect of the products was also appreciated by the customers.\n\n\n\nWhat USERS complained about [no subsetting, analysis on total 10k reviews]:\n\n - Many customers complained about the size of the product being too small.\n- Some customers were not satisfied with the quality of the product, stating it was not as good as they expected.\n- There were also complaints about the product being smaller than expected.""",
-        style={'width': '100%', 'height': 300},
-    )
+        value="""What USERS like/gave positive feedback about:\n\n -The 'price' of the products was also appreciated by the customers.\n- Customers also liked the 'size' of the products.\n- The 'finish' of the products was also mentioned positively by the customers.\n- The 'comfort' provided by the products was also appreciated.\n- Customers also liked the 'design' of the products.\n- The 'quality' of the products was also mentioned positively by the customers.\n- The 'durability' of the products was also appreciated by the customers.\n- Customers also liked the 'easy to assemble' feature of the products.\n- The 'value for money' aspect of the products was also appreciated by the customers.""",
+        style={'width': '100%', 'max-height': "150px",
+               'min-height': "150px",'resize':None,
+              'backgroundColor': "#C8E4B2"
+              },
+    ),
+        
+        dcc.Textarea(
+        id='textarea-example-3',
+        value="""What USERS complained about :\n\n - Many customers complained about the size of the product being too small.\n- Some customers were not satisfied with the quality of the product, stating it was not as good as they expected.\n- There were also complaints about the product being smaller than expected..""",
+        style={'width': '100%', 'max-height': "150px",
+               'min-height': "150px",'resize':None,
+               'backgroundColor' : "#FA9884"
+              
+              },
+            
+                    )]
+        
     )
     
     ]
@@ -381,7 +419,7 @@ content_first_row = dbc.Row([
 content_second_row = dbc.Row(
     [
         dbc.Col(
-            dcc.Graph(id='graph_1'), md=8
+            dcc.Graph(id='graph_1'), md=12
         ),
 
         # dbc.Col(
@@ -400,20 +438,6 @@ content_third_row = dbc.Row(
             #dcc.Graph(id='graph_4', figure="fig"), #md=12,
             html.Img(id ="wordcloud_img") , md = 8
         ),
-        # dbc.Col(
-        #     dbc.Card(
-
-        #             dbc.CardBody(
-        #                 [
-        #                     html.H4(id='card_title_filter', children=['Reviews considered for graph'], className='card-title',
-        #                             style=CARD_TEXT_STYLE),
-        #                     html.P(id='card_text_filter', children='children', style=CARD_TEXT_STYLE_SMALL),
-        #                 ]
-        #             )
-        
-        #     ),md = 3
-            
-        # ),
 
          dbc.Col(
             dash_table.DataTable(
@@ -443,7 +467,31 @@ content_fourth_row = dbc.Row(
             dcc.Graph(id='graph_6'),md=5
         ),
     ]
-)
+    )
+
+content_fifth_row = dbc.Row(
+    [
+        dbc.Col(
+            dash_table.DataTable(
+            id='table_reviews',
+            columns=[{"name": i, "id": i} for i in review_cols],
+            
+                
+            style_cell={'textAlign': 'left', 'minWidth': '50px', 'width': '100px', 'maxWidth': '1000px', 
+                        'whiteSpace':'normal', 'height':'auto', 'lineHeight':'15px'},
+                style_cell_conditional=[
+                        {
+            'if': {'column_id': 'review_date'},
+                    'textAlign': 'center'
+                        }
+                        ]
+          
+        ), md=12
+        )
+    ]
+    )
+
+
 
 content = html.Div(
     [
@@ -460,7 +508,11 @@ content = html.Div(
             [html.Label('Count of reviews filtered for analysis:'),html.P(html.Div(id='count_header'))]),
         html.Hr(),
         content_third_row,
-        content_fourth_row
+        html.Hr(),
+        content_fourth_row,
+        html.Hr(),
+        content_fifth_row
+        
     ],
     style=CONTENT_STYLE
 )
@@ -488,14 +540,15 @@ app.layout = html.Div([sidebar, content])
      State('product_id', 'value')
      ]
    )
-def update_card_text_1(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+def update_card_text_1(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
-
+    print(temp_df)
     print("***************UPDATE CARD TEXT 1*********************")
+    print(binned)
     filt_dict = {'star_rating':star_rating,
                  'sentiment_tag': sentiment_list, 
                   'verified_purchase':verified_purchase,
-                 'total_votes' : cc_votes, 
+                 'binned' : binned, 
                  'product_id' : product_id}
     
     filt_dict_updated = update_dictionary(filt_dict)
@@ -521,14 +574,14 @@ def update_card_text_1(n_clicks, start_date, end_date,star_rating, sentiment_lis
      State('product_id', 'value')
      ]
     )
-def update_card_text_2(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+def update_card_text_2(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
 
     print("*****************UPDATE CARD TEXT 2*******************")
     filt_dict = {'star_rating':star_rating,
                  'sentiment_tag': sentiment_list, 
                   'verified_purchase':verified_purchase,
-                 'total_votes' : cc_votes, 
+                 'binned' : binned, 
                  'product_id' : product_id}
     
     filt_dict_updated = update_dictionary(filt_dict)
@@ -554,14 +607,14 @@ def update_card_text_2(n_clicks, start_date, end_date,star_rating, sentiment_lis
      State('product_id', 'value')]
     )
     #def update_card_text_1(n_clicks, dropdown_value, check_list_value, start_date, end_date):
-def update_card_text_3(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+def update_card_text_3(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
 
     print("*****************UPDATE CARD TEXT 3*******************")
     filt_dict = {'star_rating':star_rating,
                  'sentiment_tag': sentiment_list, 
                   'verified_purchase':verified_purchase,
-                 'total_votes' : cc_votes, 
+                 'binned' : binned, 
                  'product_id' : product_id}
     
     filt_dict_updated = update_dictionary(filt_dict)
@@ -587,14 +640,14 @@ def update_card_text_3(n_clicks, start_date, end_date,star_rating, sentiment_lis
      State('product_id', 'value')]
     )
     #def update_card_text_1(n_clicks, dropdown_value, check_list_value, start_date, end_date):
-def update_card_text_4(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+def update_card_text_4(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
 
     print("**************** UPDATE CARD TEXT 4********************")
     filt_dict = {'star_rating':star_rating,
                  'sentiment_tag': sentiment_list, 
                   'verified_purchase':verified_purchase,
-                 'total_votes' : cc_votes, 
+                 'binned' : binned, 
                  'product_id' : product_id}
     
     filt_dict_updated = update_dictionary(filt_dict)
@@ -622,7 +675,7 @@ def update_card_text_4(n_clicks, start_date, end_date,star_rating, sentiment_lis
      State('product_id', 'value')]
     )
 
-def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
 
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
 
@@ -630,7 +683,7 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     filt_dict = {'star_rating':star_rating,
                  'sentiment_tag': sentiment_list, 
                   'verified_purchase':verified_purchase,
-                 'total_votes' : cc_votes, 
+                 'binned' : binned, 
                  'product_id' : product_id}
     
     filt_dict_updated = update_dictionary(filt_dict)
@@ -690,7 +743,7 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
      State('product_id', 'value')
      ]
     )
-def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
 
 
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
@@ -699,7 +752,7 @@ def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     filt_dict = {'star_rating':star_rating,
                  'sentiment_tag': sentiment_list, 
                   'verified_purchase':verified_purchase,
-                 'total_votes' : cc_votes, 
+                 'binned' : binned, 
                  'product_id' : product_id}
     
     filt_dict_updated = update_dictionary(filt_dict)
@@ -739,7 +792,7 @@ def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, v
      State('product_id', 'value')
      ]
     )
-def update_keyword_table(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+def update_keyword_table(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
 
 
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
@@ -748,7 +801,7 @@ def update_keyword_table(n_clicks, start_date, end_date,star_rating, sentiment_l
     filt_dict = {'star_rating':star_rating,
                  'sentiment_tag': sentiment_list, 
                   'verified_purchase':verified_purchase,
-                 'total_votes' : cc_votes, 
+                 'binned' : binned, 
                  'product_id' : product_id}
     
     filt_dict_updated = update_dictionary(filt_dict)
@@ -783,7 +836,7 @@ def update_keyword_table(n_clicks, start_date, end_date,star_rating, sentiment_l
      State('product_id', 'value')
      ]
     )
-def update_graph_5(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+def update_graph_5(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
 
     star_rating_str = str(star_rating)[1:-1]
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
@@ -791,7 +844,7 @@ def update_graph_5(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     filt_dict = {'star_rating':star_rating,
                  'sentiment_tag': sentiment_list, 
                   'verified_purchase':verified_purchase,
-                 'total_votes' : cc_votes, 
+                 'binned' : binned, 
                  'product_id' : product_id}
     
     filt_dict_updated = update_dictionary(filt_dict)
@@ -809,15 +862,18 @@ def update_graph_5(n_clicks, start_date, end_date,star_rating, sentiment_list, v
                              orientation = 'h',
                              textposition = 'outside'
                              )])
-        fig.update_xaxes(showline=True,
+        fig.update_xaxes(title='# Review Count', showline=True,
                 linewidth=1,
                 linecolor='grey',
                 mirror=True)
 
-        fig.update_yaxes(showline=True,
+        fig.update_yaxes(title = "Star rating on Marketplace",showline=True,
                 linewidth=1,
                 linecolor='grey',
                 mirror=True)
+        
+        fig.update_layout(title='Bar Chart of Star Rating Distribution')
+
 
         return fig
     else :
@@ -840,7 +896,7 @@ def update_graph_5(n_clicks, start_date, end_date,star_rating, sentiment_list, v
      State('product_id', 'value')
      ]
     )
-def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,cc_votes, product_id):
+def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
 
     star_rating_str = str(star_rating)[1:-1]
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
@@ -850,7 +906,7 @@ def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     filt_dict = {'star_rating':star_rating,
                  'sentiment_tag': sentiment_list, 
                   'verified_purchase':verified_purchase,
-                 'total_votes' : cc_votes, 
+                 'binned' : binned, 
                  'product_id' : product_id}
     
     filt_dict_updated = update_dictionary(filt_dict)
@@ -869,11 +925,52 @@ def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, v
             names='sentiment_tag',
             hole=.3,
             )
+
+        fig.update_layout(title='Piechart of Sentiment Distribution')
         return fig
     else :
         return str({"update"})
 
 #####################################################################################       
+
+
+
+## REVIEW TABLE
+@app.callback(
+    Output('table_reviews', 'data'),
+    [Input('submit_button', 'n_clicks'),
+    Input('my-date-picker-range', 'start_date'),
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('sentiment_list', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('cc_votes', 'value'), 
+     State('product_id', 'value')
+     ]
+    )
+def update_review_table(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
+
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+    print("*************** TABLE OF KEYWORDS *********************")
+
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'binned' : binned, 
+                 'product_id' : product_id}
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+
+    for key, val in filt_dict_updated.items():
+        temp_df = temp_df[temp_df[key].isin(val)]
+
+    temp_df = temp_df[review_cols]
+    if len(temp_df) >0:
+
+        return temp_df.head(20).to_dict('records')
+    
+    else :
+        return "Insufficient data"
 
 
 
@@ -892,16 +989,28 @@ def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, v
 def clearDropDown1(n_clicks):
     print("**************** CLEAR ALL FUNCTION ********************")
     if n_clicks != 0: #Don't clear options when loading page for the first time
-        print(['2015-07-01','2016-09-15',['1','2','3','4','5'],['POSITIVE','NEGATIVE'],
+        return ['2023-01-01','2023-09-15',['1','2','3','4','5'],['POSITIVE','NEGATIVE'],
              ['Y','N'],
-            list(data['total_votes'].unique()), 
-             list(data['product_id'].unique())
-               ] )
-        return ['2015-07-01','2016-09-15',['1','2','3','4','5'],['POSITIVE','NEGATIVE'],
-             ['Y','N'],
-            list(data['total_votes'].unique()), 
+            ['(-1, 0]', '(0, 10]', '(10, 50]', '(50, 5000]'], 
              list(data['product_id'].unique())
                ] #Return an empty list of options
+    
+    
+## LAST 30 days button
+
+# @app.callback([
+#         Output('my-date-picker-range', 'start_date'),
+#         Output('my-date-picker-range', 'end_date')],
+#         Input('last_30_days', 'n_clicks'),
+#         )
+# def update_last_30(n_clicks):
+#     print("**************** LAST 30 DAYS ********************")
+#     if n_clicks != 0: #Don't clear options when loading page for the first time
+#         max_date = datetime(2023,8,23).strftime("%Y-%m-%d")
+#         min_date = (datetime.now().date() - timedelta(30)).strftime("%Y-%m-%d")
+        
+        
+#     return ['2023-07-01','2023-08-01'] #Return an empty list of options
 
 
 
