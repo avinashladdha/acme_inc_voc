@@ -95,8 +95,21 @@ convert_to_str = ['star_rating','total_votes','binned']
 data[convert_to_str] = data[convert_to_str].astype('str')
 
 #making a keyword dataframe
-
 keyword_df = top_keywords_df(flatten_list(data['tags'].to_list()))
+
+
+## Building a top_product sentiment table 
+rating_df = data.groupby(['product_id','star_rating'], as_index = False)['review_id'].count()
+rating_df['star_rating'] =rating_df['star_rating'].astype(float)
+rating_df['review_id'] =rating_df['review_id'].astype(float)
+rating_df['rating_mult'] = rating_df['star_rating']*rating_df['review_id']
+
+rating_df_gpd = rating_df.groupby(['product_id'], as_index= False).apply(lambda x: x['rating_mult'].sum()/x['review_id'].sum())
+
+rating_df_gpd.columns = ['Product ID','Weighted Rating']
+rating_df_gpd['Weighted Rating'] = rating_df_gpd['Weighted Rating'].apply(lambda x : round(x,2))
+rating_df_gpd = rating_df_gpd.sort_values(['Weighted Rating'], ascending = False)
+
 
 ## data reuired for functions
 filt_values = {'star_rating': ['1','2','3','4','5'], 'sentiment_tag': ['POSITIVE','NEGATIVE'],
@@ -104,7 +117,7 @@ filt_values = {'star_rating': ['1','2','3','4','5'], 'sentiment_tag': ['POSITIVE
                'binned': ['(-1, 0]', '(0, 10]', '(10, 50]', '(50, 5000]'], 
                'product_id': list(data['product_id'].unique())}
 
-review_cols = ['customer_id','review_id','product_id','review_date','review_body']
+review_cols = ['product_id','review_date','review_body']
 
 # the style arguments for the sidebar.
 SIDEBAR_STYLE = {
@@ -143,9 +156,9 @@ CARD_TEXT_STYLE_SMALL = {
 controls = dbc.FormGroup(
     [
         html.P('Date Range', style={
-            'textAlign': 'center'
+            'textAlign': 'center',"width": "100%"
         }),
-            dcc.DatePickerRange(
+            html.Div(dcc.DatePickerRange(
             id='my-date-picker-range',
             min_date_allowed=date(2020, 12, 5),
             max_date_allowed=date(2023, 8, 23),
@@ -154,13 +167,22 @@ controls = dbc.FormGroup(
             start_date=date(2023, 6, 23),
             
             style = {
-                        'font-size': '5px','display': 'inline-block', 'border-radius' : '2px', 
-                        'border' : '1px solid #ccc', 'color': '#333', 
-                        'border-spacing' : '0', 'border-collapse' :'separate',
-                        'zIndex': 10
+                        'font-size': '5px','display': 'inline-block',# 'border-radius' : '2px', 
+                        #'border' : '1px solid #ccc', 'color': '#333', 
+                        'border-spacing' : '5', 'border-collapse' :'separate',
+                        'zIndex': 10 ,  "width": "100%" ,
+                        # 'padding-left': '1px',
+                        # 'padding-right': '1px' 
                         } 
-             ),
-        html.Div(id='output-container-date-picker-range')
+                     ),
+                     style={
+            'textAlign': 'center',"width": "100%"
+                            }
+                    ),
+        html.Div(id='output-container-date-picker-range'),
+        html.P('Reviews time duration : 1 Jan 2021 - 22 Aug 2023', style={
+            'textAlign': 'center',"width": "100%", 'font-size': '10px'
+        })
         ,
         html.Br(),
         
@@ -329,7 +351,6 @@ content_summary_row = dbc.Row([
     )
     ),
     dbc.Col(
-        
         [dcc.Textarea(
         id='textarea-example-2',
         value="""What USERS like/gave positive feedback about:\n\n -The 'price' of the products was also appreciated by the customers.\n- Customers also liked the 'size' of the products.\n- The 'finish' of the products was also mentioned positively by the customers.\n- The 'comfort' provided by the products was also appreciated.\n- Customers also liked the 'design' of the products.\n- The 'quality' of the products was also mentioned positively by the customers.\n- The 'durability' of the products was also appreciated by the customers.\n- Customers also liked the 'easy to assemble' feature of the products.\n- The 'value for money' aspect of the products was also appreciated by the customers.""",
@@ -345,15 +366,36 @@ content_summary_row = dbc.Row([
         style={'width': '100%', 'max-height': "150px",
                'min-height': "150px",'resize':None,
                'backgroundColor' : "#FA9884"
-              
               },
-            
-                    )]
+            )
+        ]
         
-    )
-    
+        )
     ]
-    )   
+    ) 
+
+content_summary_table = dbc.Row(
+    [
+        html.Br(),
+        html.P('Top Products and their Weighted rating:', style={
+            'textAlign': 'left','padding':'30px', 'font-size': '20px'
+        }),
+        
+        dbc.Col(
+            dash_table.DataTable(
+            id='table_top_products',
+            columns=[{"name": i, "id": i} for i in rating_df_gpd.columns],
+            style_cell={'textAlign': 'center'},                style_cell_conditional=[
+                        {
+            'if': {'column_id': 'Product ID'},
+                    'textAlign': 'left'
+                        }
+                        ],
+            data = rating_df_gpd.head(5).to_dict('records')
+        ), md=5
+        )
+    ]
+)
 
 content_first_row = dbc.Row([
     dbc.Col(
@@ -421,15 +463,19 @@ content_second_row = dbc.Row(
         dbc.Col(
             dcc.Graph(id='graph_1'), md=12
         ),
-
-        # dbc.Col(
-        #     dcc.Graph(id='graph_2'), md=4
-        # ),
-        # dbc.Col(
-        #     dcc.Graph(id='graph_3'), md=4
-        # )
     ]
 )
+
+content_sentiment_row = dbc.Row(
+    [
+        dbc.Col(
+            dcc.Graph(id='graph_sentiment'), md=12
+        ),
+    ]
+)
+
+
+
 
 content_third_row = dbc.Row(
     [
@@ -471,18 +517,24 @@ content_fourth_row = dbc.Row(
 
 content_fifth_row = dbc.Row(
     [
+        html.H4('Filtered User reviews (20 most recent)', style={
+            'textAlign': 'Center'
+        }),
+        
+        
         dbc.Col(
             dash_table.DataTable(
             id='table_reviews',
-            columns=[{"name": i, "id": i} for i in review_cols],
+            columns=[{"name": i, "id": i} for i in ['Product ID','Review Date','Review Text']],
             
                 
-            style_cell={'textAlign': 'left', 'minWidth': '50px', 'width': '100px', 'maxWidth': '1000px', 
-                        'whiteSpace':'normal', 'height':'auto', 'lineHeight':'15px'},
+            style_cell={'textAlign': 'left', 'minWidth': '80px', #'width': '50px',
+                        'maxWidth': '1000px', 
+                        'whiteSpace':'normal', 'height':'auto', 'lineHeight':'20px'},
                 style_cell_conditional=[
                         {
-            'if': {'column_id': 'review_date'},
-                    'textAlign': 'center'
+                    'if': {'column_id': 'Review Date'},
+                            'textAlign': 'center' ,'minWidth': '100px'
                         }
                         ]
           
@@ -497,12 +549,14 @@ content = html.Div(
     [
         html.H2('Vire Insights | VoC v1.0', style=TEXT_STYLE),
         content_summary_row,
+        content_summary_table,
         html.Hr(),
         html.H4('Overall summary for selected time window', style=TEXT_STYLE),
         html.Hr(),
         content_first_row,
         html.Hr(),
         content_second_row,
+        content_sentiment_row,
         html.H3('Review profiling', style=TEXT_STYLE),
         html.Div(    
             [html.Label('Count of reviews filtered for analysis:'),html.P(html.Div(id='count_header'))]),
@@ -525,6 +579,9 @@ app.layout = html.Div([sidebar, content])
 
 
 ## Callback code -- Left to right , top down
+
+
+
 
 ## TOTAL REVIEWS
 @app.callback(
@@ -706,9 +763,11 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     x = pivot_df['date']
     y1 = pivot_df['neg_cc']
     y2 = pivot_df['pos_cc']
-    fig = px.line(x=x, y = [y1,y2])
+    
+    #fig = px.line(x=x, y = [y1,y2])
+    fig = px.line(x=pivot_df['date'], y = [pivot_df['neg_cc'],pivot_df['pos_cc']],markers=True)
     # Change title 
-    fig.update_layout(title='Trendline of feedback sentiment')
+    fig.update_layout(title='Customer sentiment trends')
     # Change the x-axis name
     fig.update_xaxes(title='Date')
     # Change the y-axis name
@@ -719,14 +778,97 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     
     fig.update_layout(
         {
-        'plot_bgcolor' :'rgba(0,0,0,0)'
+        'plot_bgcolor' :'rgba(0,0,0,0)',
+        #    'hovermode':"y"
         }
             )  
 
-    for idx, name in enumerate(series_names):
-        fig.data[idx].name = name
-        fig.data[idx].hovertemplate = name
+    # for idx, name in enumerate([y1,y2]):
+    #     fig.data[idx].hovertemplate = name
+        
+        
+    newnames = {'wide_variable_0':'Negative', 'wide_variable_1': 'Positive'}
+    fig.for_each_trace(lambda t: t.update(name = newnames[t.name]))
+ 
+        
     return fig
+
+
+
+
+
+
+####### SENTIMENT TREND CHART 
+
+@app.callback(
+    Output('graph_sentiment', 'figure'),
+    [Input('submit_button', 'n_clicks'),
+    Input('my-date-picker-range', 'start_date'),
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('sentiment_list', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('cc_votes', 'value'), 
+     State('product_id', 'value')]
+    )
+
+def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
+
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+
+    print("*************** UPDATE LINE CHART *********************")
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'binned' : binned, 
+                 'product_id' : product_id}
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+
+
+    for key, val in filt_dict_updated.items():
+        temp_df = temp_df[temp_df[key].isin(val)]
+
+    grouped_df = temp_df.groupby(['review_date','sentiment_tag'], as_index = False)['review_id'].count()
+    grouped_df = grouped_df.fillna(0)
+
+    pivot_df = pd.pivot_table(grouped_df, values=['review_id'], index=['review_date'], columns=['sentiment_tag'],
+                aggfunc='sum', fill_value=0, margins=False, dropna=False, margins_name='All', observed=False, sort=True)
+
+    pivot_df.columns = [' '.join(col).strip() for col in pivot_df.columns.values]
+    pivot_df = pivot_df.reset_index()
+    pivot_df.columns = ['date','neg_cc','pos_cc']
+    pivot_df['sentiment_score'] = round((100*pivot_df['pos_cc']/(pivot_df['pos_cc']+pivot_df['neg_cc'])),2)
+
+    fig = px.line(x=pivot_df['date'], y = pivot_df['sentiment_score'])
+    # Change title 
+    fig.update_layout(title='Trendline of sentiment score')
+    # Change the x-axis name
+    fig.update_xaxes(title='Date')
+    # Change the y-axis name
+    fig.update_yaxes(title='Calculated sentiment score')
+    # # Update Legend name and title 
+    fig.add_hline(y=pivot_df['sentiment_score'].mean(), line_width=3, line_dash="dash", line_color="red")
+    
+    fig.update_layout(
+        {
+        'plot_bgcolor' :'rgba(0,0,0,0)',
+        #    'hovermode':"y"
+        }
+            )  
+    fig.add_annotation(dict(font=dict(color='black',size=15),
+                                        x=pivot_df['date'].max(),
+                                        y=pivot_df['sentiment_score'].mean()*1.04,
+                                        showarrow=False,
+                                        text="Mean :{}".format(round(pivot_df['sentiment_score'].mean(),1)),
+                                        textangle=0,
+                                        xanchor='right'))
+
+ 
+        
+    return fig
+
+
 
 
 ## WORDCLOUD 
@@ -965,8 +1107,12 @@ def update_review_table(n_clicks, start_date, end_date,star_rating, sentiment_li
         temp_df = temp_df[temp_df[key].isin(val)]
 
     temp_df = temp_df[review_cols]
+    temp_df['review_date'] =  temp_df['review_date'].dt.strftime("%Y-%m-%d")
+    
+    temp_df.columns = ['Product ID','Review Date','Review Text']
+    temp_df = temp_df.sort_values(['Review Date'], ascending = False)
+    print(temp_df.columns)
     if len(temp_df) >0:
-
         return temp_df.head(20).to_dict('records')
     
     else :
