@@ -346,14 +346,14 @@ content_summary_row = dbc.Row([
     dbc.Col(
     dcc.Textarea(
         id='textarea-example',
-        value="""OVERALL SUMMARY:\n\nBased on the analysis of the reviews, most customers are satisfied with their purchases, as indicated by the high number of positive reviews and common positive tags such as 'love', 'good', 'great', 'nice', 'perfect', 'product', 'awesome', and 'comfortable'. However, there are also a significant number of negative reviews, particularly for products with the IDs B006MIUM20, B002NS0ZCK, B001FB5LE8, B005KUVZEA, B009YPRRZ8, B00PBQ7EA2, and B004LQ1RKQ. Common issues mentioned in negative reviews include the size of the products, difficulty in assembly, and issues with the quality of mattresses or bed frames. These issues should be addressed to improve customer satisfaction""",
+        value="""OVERALL SUMMARY:\n\nThe reviews for these Amazon products are mixed. Some customers are pleased with the comfort and durability of the mattresses, while others find them too soft or too firm. A few customers complained about the mattresses sagging or collapsing after a short period of use. The bed frames received mixed reviews as well, with some customers finding them easy to assemble and sturdy, while others complained about squeaking, instability, or difficulty fitting a bed skirt. The chairs also received mixed reviews, with some customers finding them comfortable and others complaining about poor quality or discomfort. The desks and storage units were generally well-received, although a few customers had issues with assembly or size. The carts were praised for their convenience and storage capacity, but some customers wished the handles were adjustable.""",
         style={'width': '100%', 'min-height': "300px", 'max-height': "300px",'resize':None,'disabled':True},
     )
     ),
     dbc.Col(
         [dcc.Textarea(
         id='textarea-example-2',
-        value="""What USERS like/gave positive feedback about:\n\n -The 'price' of the products was also appreciated by the customers.\n- Customers also liked the 'size' of the products.\n- The 'finish' of the products was also mentioned positively by the customers.\n- The 'comfort' provided by the products was also appreciated.\n- Customers also liked the 'design' of the products.\n- The 'quality' of the products was also mentioned positively by the customers.\n- The 'durability' of the products was also appreciated by the customers.\n- Customers also liked the 'easy to assemble' feature of the products.\n- The 'value for money' aspect of the products was also appreciated by the customers.""",
+        value="""What USERS likes:\n\n 1. Softness: Many customers mentioned that they found the mattresses to be soft and comfortable, which they appreciated.\n2. Quick delivery: Customers were pleased with the quick delivery of the products.\n3. Lightweight: Several customers mentioned that the products were lightweight and easy to move around.\n4. Easy assembly: Customers appreciated that the products were easy to assemble.\n5. Value for money: Some customers felt that the products were good value for the price.""",
         style={'width': '100%', 'max-height': "150px",
                'min-height': "150px",'resize':None,
               'backgroundColor': "#C8E4B2"
@@ -362,7 +362,7 @@ content_summary_row = dbc.Row([
         
         dcc.Textarea(
         id='textarea-example-3',
-        value="""What USERS complained about :\n\n - Many customers complained about the size of the product being too small.\n- Some customers were not satisfied with the quality of the product, stating it was not as good as they expected.\n- There were also complaints about the product being smaller than expected..""",
+        value="""1. The mattress is too soft and squishy, causing it to collapse or sag in the middle after a short period of use.\n2. The bed frames have legs that are inconveniently placed, causing customers to often hit their feet on them. Additionally, some customers reported that the frames were too high or too low.\n3. Some customers reported that the chairs were unstable, uncomfortable, and of poor quality.""",
         style={'width': '100%', 'max-height': "150px",
                'min-height': "150px",'resize':None,
                'backgroundColor' : "#FA9884"
