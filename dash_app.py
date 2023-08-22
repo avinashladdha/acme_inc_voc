@@ -362,7 +362,7 @@ content_summary_row = dbc.Row([
         
         dcc.Textarea(
         id='textarea-example-3',
-        value="""1. The mattress is too soft and squishy, causing it to collapse or sag in the middle after a short period of use.\n2. The bed frames have legs that are inconveniently placed, causing customers to often hit their feet on them. Additionally, some customers reported that the frames were too high or too low.\n3. Some customers reported that the chairs were unstable, uncomfortable, and of poor quality.""",
+        value="""What users COMPLAINED about: \n\n1. The mattress is too soft and squishy, causing it to collapse or sag in the middle after a short period of use.\n2. The bed frames have legs that are inconveniently placed, causing customers to often hit their feet on them. Additionally, some customers reported that the frames were too high or too low.\n3. Some customers reported that the chairs were unstable, uncomfortable, and of poor quality.""",
         style={'width': '100%', 'max-height': "150px",
                'min-height': "150px",'resize':None,
                'backgroundColor' : "#FA9884"
