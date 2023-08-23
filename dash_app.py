@@ -125,7 +125,7 @@ SIDEBAR_STYLE = {
     'top': 0,
     'left': 0,
     'bottom': 0,
-    'width': '25%',
+    'width': '22%',
     'padding': '20px 10px',
     'background-color': '#f8f9fa',
     "overflow": "scroll"
@@ -133,7 +133,7 @@ SIDEBAR_STYLE = {
 
 # the style arguments for the main content page.
 CONTENT_STYLE = {
-    'margin-left': '25%',
+    'margin-left': '27%',
     'margin-right': '5%',
     'padding': '20px 10p'
 }
@@ -343,31 +343,79 @@ sidebar = html.Div(
 
 
 content_summary_row = dbc.Row([
-    dbc.Col(
-    dcc.Textarea(
-        id='textarea-example',
-        value="""OVERALL SUMMARY:\n\nThe reviews for these Amazon products are mixed. Some customers are pleased with the comfort and durability of the mattresses, while others find them too soft or too firm. A few customers complained about the mattresses sagging or collapsing after a short period of use. The bed frames received mixed reviews as well, with some customers finding them easy to assemble and sturdy, while others complained about squeaking, instability, or difficulty fitting a bed skirt. The chairs also received mixed reviews, with some customers finding them comfortable and others complaining about poor quality or discomfort. The desks and storage units were generally well-received, although a few customers had issues with assembly or size. The carts were praised for their convenience and storage capacity, but some customers wished the handles were adjustable.""",
-        style={'width': '100%', 'min-height': "300px", 'max-height': "300px",'resize':None,'disabled':True},
-    )
-    ),
-    dbc.Col(
-        [dcc.Textarea(
-        id='textarea-example-2',
-        value="""What USERS likes:\n\n 1. Softness: Many customers mentioned that they found the mattresses to be soft and comfortable, which they appreciated.\n2. Quick delivery: Customers were pleased with the quick delivery of the products.\n3. Lightweight: Several customers mentioned that the products were lightweight and easy to move around.\n4. Easy assembly: Customers appreciated that the products were easy to assemble.\n5. Value for money: Some customers felt that the products were good value for the price.""",
-        style={'width': '100%', 'max-height': "150px",
-               'min-height': "150px",'resize':None,
-              'backgroundColor': "#C8E4B2"
-              },
-    ),
+    dbc.Col([
         
-        dcc.Textarea(
-        id='textarea-example-3',
-        value="""What users COMPLAINED about: \n\n1. The mattress is too soft and squishy, causing it to collapse or sag in the middle after a short period of use.\n2. The bed frames have legs that are inconveniently placed, causing customers to often hit their feet on them. Additionally, some customers reported that the frames were too high or too low.\n3. Some customers reported that the chairs were unstable, uncomfortable, and of poor quality.""",
-        style={'width': '100%', 'max-height': "150px",
-               'min-height': "150px",'resize':None,
-               'backgroundColor' : "#FA9884"
-              },
-            )
+        
+#     dcc.Textarea(
+#         id='textarea-example',
+#         value="""OVERALL SUMMARY:\n\nThe reviews for these Amazon products are mixed. Some customers are pleased with the comfort and durability of the mattresses, while others find them too soft or too firm. A few customers complained about the mattresses sagging or collapsing after a short period of use. The bed frames received mixed reviews as well, with some customers finding them easy to assemble and sturdy, while others complained about squeaking, instability, or difficulty fitting a bed skirt. The chairs also received mixed reviews, with some customers finding them comfortable and others complaining about poor quality or discomfort. The desks and storage units were generally well-received, although a few customers had issues with assembly or size. The carts were praised for their convenience and storage capacity, but some customers wished the handles were adjustable.""",
+#         style={'width': '100%', 'min-height': "300px", 'max-height': "300px",
+#                'resize':None,'disabled':True,'readOnly' :'True'
+#               },),
+        
+        
+       html.P("""OVERALL SUMMARY:\n\nThe reviews for these Amazon products are mixed. Some customers are pleased with the comfort and durability of the mattresses, while others find them too soft or too firm. A few customers complained about the mattresses sagging or collapsing after a short period of use. The bed frames received mixed reviews as well, with some customers finding them easy to assemble and sturdy, while others complained about squeaking, instability, or difficulty fitting a bed skirt. The chairs also received mixed reviews, with some customers finding them comfortable and others complaining about poor quality or discomfort. The desks and storage units were generally well-received, although a few customers had issues with assembly or size. The carts were praised for their convenience and storage capacity, but some customers wished the handles were adjustable.""",
+                     
+                     style={"border":"2px black solid",
+                           "width" : "100%",
+                            "minLength" : "100px",
+                            "minHeight" :'400px',
+                            'readOnly' : True,
+                            'disabled' : True
+                           })
+        
+      ]
+    
+    ),
+    dbc.Col(
+        [
+            
+    #         dcc.Textarea(
+    #     id='textarea-example-2',
+    #     value="""What USERS likes:\n\n 1. Softness: Many customers mentioned that they found the mattresses to be soft and comfortable, which they appreciated.\n2. Quick delivery: Customers were pleased with the quick delivery of the products.\n3. Lightweight: Several customers mentioned that the products were lightweight and easy to move around.\n4. Easy assembly: Customers appreciated that the products were easy to assemble.\n5. Value for money: Some customers felt that the products were good value for the price.""",
+    #     style={'width': '100%', 'max-height': "150px",
+    #            'min-height': "150px",'resize':None,
+    #           'backgroundColor': "#C8E4B2",'readOnly' :True
+    #           },
+    # ),
+         html.P("""What USERS liked:\n\n 
+         1. Softness: Many customers mentioned that they found the mattresses to be soft and comfortable, which they appreciated.\n
+         2. Quick delivery: Customers were pleased with the quick delivery of the products.\n
+         3. Lightweight: Several customers mentioned that the products were lightweight and easy to move around.\n
+         4. Easy assembly: Customers appreciated that the products were easy to assemble.\n
+         5. Value for money: Some customers felt that the products were good value for the price.""",
+                  style={"border":"2px black solid",'width': '100%', 
+                            "minLength" : "100px",
+                            "minHeight" :'200px',
+              'backgroundColor': "#C8E4B2",
+                'readOnly' : True
+                        
+                        }
+                 ),
+         
+         
+        
+#         dcc.Textarea(
+#         id='textarea-example-3',
+#         value="""What users COMPLAINED about: \n\n1. The mattress is too soft and squishy, causing it to collapse or sag in the middle after a short period of use.\n2. The bed frames have legs that are inconveniently placed, causing customers to often hit their feet on them. Additionally, some customers reported that the frames were too high or too low.\n3. Some customers reported that the chairs were unstable, uncomfortable, and of poor quality.""",
+#         style={'width': '100%', 'max-height': "150px",
+#                'min-height': "150px",'resize':None,
+#                'backgroundColor' : "#FA9884",'readOnly' :True
+#               },
+#             )
+            
+            
+             html.P("""What users COMPLAINED about: \n\n1. The mattress is too soft and squishy, causing it to collapse or sag in the middle after a short period of use.\n2. The bed frames have legs that are inconveniently placed, causing customers to often hit their feet on them. Additionally, some customers reported that the frames were too high or too low.\n3. Some customers reported that the chairs were unstable, uncomfortable, and of poor quality.""",
+                  style={"border":"2px black solid",'width': '100%', 
+                         "minLength" : "100px",
+                          "minHeight" :'200px',
+                          'backgroundColor': "#FA9884",
+                        'readOnly' : True
+                        }
+                 ),
+            
+            
+            
         ]
         
         )
@@ -474,6 +522,40 @@ content_sentiment_row = dbc.Row(
     ]
 )
 
+content_sentiment_product_row = dbc.Row(
+    [
+         dbc.Col(
+            dash_table.DataTable(
+            id='table_top_products_sentiment',
+            columns=[{"name": i, "id": i} for i in  ['Product ID', 'Total Reviews analysed','Sentiment Score']],
+            style_cell={'textAlign': 'center'},
+            #     style_cell_conditional=[
+            #             {
+            # 'if': {'column_id': 'Keyword'},
+            #         'textAlign': 'left'
+            #             }
+            #             ]
+            #data=keyword_df.head(10).to_dict('records'),
+                )
+                ),
+        
+         dbc.Col(
+            dash_table.DataTable(
+            id='table_bottom_products_sentiment',
+            columns=[{"name": i, "id": i} for i in  ['Product ID', 'Total Reviews analysed','Sentiment Score']],
+            style_cell={'textAlign': 'center'},
+            #     style_cell_conditional=[
+            #             {
+            # 'if': {'column_id': 'Keyword'},
+            #         'textAlign': 'left'
+            #             }
+            #             ]
+            #data=keyword_df.head(10).to_dict('records'),
+                )
+                )
+    ]
+)
+
 
 
 
@@ -497,8 +579,8 @@ content_third_row = dbc.Row(
                         }
                         ]
             #data=keyword_df.head(10).to_dict('records'),
-        ), md=3
-        )
+                ), md=3
+                )
 
 
     ]
@@ -557,6 +639,12 @@ content = html.Div(
         html.Hr(),
         content_second_row,
         content_sentiment_row,
+        html.H6('Top and bottom products based on sentiment score', style={
+                                                                        'textAlign': 'left',
+                                                                        'color': '#191970'
+                                                                    }),
+        content_sentiment_product_row,
+        html.Br(),
         html.H3('Review profiling', style=TEXT_STYLE),
         html.Div(    
             [html.Label('Count of reviews filtered for analysis:'),html.P(html.Div(id='count_header'))]),
@@ -647,7 +735,7 @@ def update_card_text_2(n_clicks, start_date, end_date,star_rating, sentiment_lis
     for key, val in filt_dict_updated.items():
         temp_df = temp_df[temp_df[key].isin(val)]
 
-    temp_df = temp_df[(temp_df['review_date']>start_date)&(temp_df['review_date']<end_date)&(temp_df['sentiment_tag']=="POSITIVE")]
+    temp_df = temp_df[(temp_df['sentiment_tag']=="POSITIVE")]
     return len(temp_df)
 
 
@@ -765,7 +853,9 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     y2 = pivot_df['pos_cc']
     
     #fig = px.line(x=x, y = [y1,y2])
-    fig = px.line(x=pivot_df['date'], y = [pivot_df['neg_cc'],pivot_df['pos_cc']],markers=True)
+    fig = px.line(x=pivot_df['date'], y = [pivot_df['neg_cc'],pivot_df['pos_cc']],
+                  color_discrete_sequence=["#F6635C", "#85A389"],
+                  markers=True)
     # Change title 
     fig.update_layout(title='Customer sentiment trends')
     # Change the x-axis name
@@ -868,6 +958,61 @@ def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment
         
     return fig
 
+
+## TOP SENTIMENT PRODUCTS
+
+@app.callback(
+    [Output('table_top_products_sentiment', 'data'),
+    Output('table_bottom_products_sentiment', 'data')
+    ],
+    [Input('submit_button', 'n_clicks'),
+    Input('my-date-picker-range', 'start_date'),
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('sentiment_list', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('cc_votes', 'value'), 
+     State('product_id', 'value')]
+    )
+
+def update_products(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
+
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+
+    print("*************** UPDATE LINE CHART *********************")
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'binned' : binned, 
+                 'product_id' : product_id}
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+
+
+    for key, val in filt_dict_updated.items():
+        temp_df = temp_df[temp_df[key].isin(val)]
+
+    ## Building a top_product sentiment table 
+    grouped_df = temp_df.groupby(['product_id','sentiment_tag'], as_index = False)['review_id'].count()
+    grouped_df = grouped_df.fillna(0)
+
+    pivot_df = pd.pivot_table(grouped_df, values=['review_id'], index=['product_id'], columns=['sentiment_tag'],
+                aggfunc='sum', fill_value=0, margins=False, dropna=False, margins_name='All', observed=False, sort=True)
+
+    pivot_df.columns = [' '.join(col).strip() for col in pivot_df.columns.values]
+    pivot_df = pivot_df.reset_index()
+    pivot_df.columns = ['product_id','neg_cc','pos_cc']
+    pivot_df['total_count'] = pivot_df['pos_cc']+pivot_df['neg_cc']
+    pivot_df['sentiment_score'] = round((100*pivot_df['pos_cc']/pivot_df['total_count']),2)
+    print(pivot_df)
+    pivot_df = pivot_df.drop(['pos_cc','neg_cc'], axis =1)
+    
+    pivot_df.columns = ['Product ID', 'Total Reviews analysed','Sentiment Score']
+    print(pivot_df)
+    top_products = pivot_df.sort_values(['Sentiment Score'], ascending = False).head(3)
+    bottom_products = pivot_df.sort_values(['Sentiment Score'], ascending = True).head(3)
+    
+    return [top_products.to_dict('records'), bottom_products.to_dict('records')]
 
 
 
