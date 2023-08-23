@@ -525,6 +525,8 @@ content_sentiment_row = dbc.Row(
 content_sentiment_product_row = dbc.Row(
     [
          dbc.Col(
+            [
+            html.Label("Top products based on sentiment analysis"),
             dash_table.DataTable(
             id='table_top_products_sentiment',
             columns=[{"name": i, "id": i} for i in  ['Product ID', 'Total Reviews analysed','Sentiment Score']],
@@ -537,9 +539,12 @@ content_sentiment_product_row = dbc.Row(
             #             ]
             #data=keyword_df.head(10).to_dict('records'),
                 )
+             ]
                 ),
         
          dbc.Col(
+             [
+            html.Label("Bottom products based on sentiment analysis"),
             dash_table.DataTable(
             id='table_bottom_products_sentiment',
             columns=[{"name": i, "id": i} for i in  ['Product ID', 'Total Reviews analysed','Sentiment Score']],
@@ -552,6 +557,7 @@ content_sentiment_product_row = dbc.Row(
             #             ]
             #data=keyword_df.head(10).to_dict('records'),
                 )
+             ]
                 )
     ]
 )
