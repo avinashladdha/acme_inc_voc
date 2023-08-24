@@ -861,7 +861,8 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     #fig = px.line(x=x, y = [y1,y2])
     fig = px.line(x=pivot_df['date'], y = [pivot_df['neg_cc'],pivot_df['pos_cc']],
                   color_discrete_sequence=["#F6635C", "#85A389"],
-                  markers=True)
+                  #markers=True
+                 )
     # Change title 
     fig.update_layout(title='Customer sentiment trends')
     # Change the x-axis name
