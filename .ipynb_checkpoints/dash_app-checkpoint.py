@@ -14,7 +14,9 @@ from wordcloud import WordCloud, STOPWORDS
 from io import BytesIO # for wordcloud 
 from datetime import datetime, timedelta
 
+# import logging
 
+# logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 
 ##############################################          FUNCTIONS             ##################################################
@@ -160,6 +162,7 @@ controls = dbc.FormGroup(
         }),
             html.Div(dcc.DatePickerRange(
             id='my-date-picker-range',
+                display_format = 'DD-MM-YYYY',
             min_date_allowed=date(2020, 12, 5),
             max_date_allowed=date(2023, 8, 23),
             initial_visible_month=date(2023, 7, 16),
@@ -354,7 +357,7 @@ content_summary_row = dbc.Row([
 #               },),
         
         
-       html.P("""OVERALL SUMMARY:\n\nThe reviews for these Amazon products are mixed. Some customers are pleased with the comfort and durability of the mattresses, while others find them too soft or too firm. A few customers complained about the mattresses sagging or collapsing after a short period of use. The bed frames received mixed reviews as well, with some customers finding them easy to assemble and sturdy, while others complained about squeaking, instability, or difficulty fitting a bed skirt. The chairs also received mixed reviews, with some customers finding them comfortable and others complaining about poor quality or discomfort. The desks and storage units were generally well-received, although a few customers had issues with assembly or size. The carts were praised for their convenience and storage capacity, but some customers wished the handles were adjustable.""",
+       html.P(["""OVERALL SUMMARY:\n\n""",html.Br(),"""The reviews for these Amazon products are mixed. Some customers are pleased with the comfort and durability of the mattresses, while others find them too soft or too firm. A few customers complained about the mattresses sagging or collapsing after a short period of use. The bed frames received mixed reviews as well, with some customers finding them easy to assemble and sturdy, while others complained about squeaking, instability, or difficulty fitting a bed skirt. The chairs also received mixed reviews, with some customers finding them comfortable and others complaining about poor quality or discomfort. The desks and storage units were generally well-received, although a few customers had issues with assembly or size. The carts were praised for their convenience and storage capacity, but some customers wished the handles were adjustable."""],
                      
                      style={"border":"2px black solid",
                            "width" : "100%",
@@ -378,12 +381,12 @@ content_summary_row = dbc.Row([
     #           'backgroundColor': "#C8E4B2",'readOnly' :True
     #           },
     # ),
-         html.P("""What USERS liked:\n\n 
-         1. Softness: Many customers mentioned that they found the mattresses to be soft and comfortable, which they appreciated.\n
-         2. Quick delivery: Customers were pleased with the quick delivery of the products.\n
-         3. Lightweight: Several customers mentioned that the products were lightweight and easy to move around.\n
-         4. Easy assembly: Customers appreciated that the products were easy to assemble.\n
-         5. Value for money: Some customers felt that the products were good value for the price.""",
+         html.P(["""What USERS liked:""",html.Br(),
+         """1. Softness: Many customers mentioned that they found the mattresses to be soft and comfortable, which they appreciated.""",html.Br(),
+         """2. Quick delivery: Customers were pleased with the quick delivery of the products.""",html.Br(),
+         """3. Lightweight: Several customers mentioned that the products were lightweight and easy to move around.""",html.Br(),
+         """4. Easy assembly: Customers appreciated that the products were easy to assemble.""",html.Br(),
+         """5. Value for money: Some customers felt that the products were good value for the price."""],
                   style={"border":"2px black solid",'width': '100%', 
                             "minLength" : "100px",
                             "minHeight" :'200px',
@@ -405,7 +408,11 @@ content_summary_row = dbc.Row([
 #             )
             
             
-             html.P("""What users COMPLAINED about: \n\n1. The mattress is too soft and squishy, causing it to collapse or sag in the middle after a short period of use.\n2. The bed frames have legs that are inconveniently placed, causing customers to often hit their feet on them. Additionally, some customers reported that the frames were too high or too low.\n3. Some customers reported that the chairs were unstable, uncomfortable, and of poor quality.""",
+             html.P(["""What users COMPLAINED about:""",html.Br(),
+             
+             """1. The mattress is too soft and squishy, causing it to collapse or sag in the middle after a short period of use.""",html.Br(),
+             """2. The bed frames have legs that are inconveniently placed, causing customers to often hit their feet on them. Additionally, some customers reported that the frames were too high or too low.""",html.Br(),
+             """3. Some customers reported that the chairs were unstable, uncomfortable, and of poor quality."""],
                   style={"border":"2px black solid",'width': '100%', 
                          "minLength" : "100px",
                           "minHeight" :'200px',
@@ -851,8 +858,11 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
 
     pivot_df.columns = [' '.join(col).strip() for col in pivot_df.columns.values]
     pivot_df = pivot_df.reset_index()
-    pivot_df.columns = ['date','neg_cc','pos_cc']
 
+    if len(pivot_df) >0:
+        pivot_df.columns = ['date','neg_cc','pos_cc']
+    else :
+        pivot_df = pd.DataFrame(columns = ['date','neg_cc','pos_cc'])
 
     x = pivot_df['date']
     y1 = pivot_df['neg_cc']
@@ -864,13 +874,16 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
                   #markers=True
                  )
     # Change title 
-    fig.update_layout(title='Customer sentiment trends')
+    fig.update_layout(title='Customer sentiment trends',
+                     hoverlabel_namelength=-1)
     # Change the x-axis name
     fig.update_xaxes(title='Date')
     # Change the y-axis name
     fig.update_yaxes(title='#Reviews')
     # Update Legend name and title 
-    fig.update_layout(legend={"title":"Sentiment"})  
+    fig.update_layout(legend={"title":"Sentiment"},
+                      hovermode='closest'
+                     )  
     series_names = ["Negative", "Positive"]
     
     fig.update_layout(
@@ -932,34 +945,59 @@ def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment
     pivot_df = pd.pivot_table(grouped_df, values=['review_id'], index=['review_date'], columns=['sentiment_tag'],
                 aggfunc='sum', fill_value=0, margins=False, dropna=False, margins_name='All', observed=False, sort=True)
 
-    pivot_df.columns = [' '.join(col).strip() for col in pivot_df.columns.values]
-    pivot_df = pivot_df.reset_index()
-    pivot_df.columns = ['date','neg_cc','pos_cc']
-    pivot_df['sentiment_score'] = round((100*pivot_df['pos_cc']/(pivot_df['pos_cc']+pivot_df['neg_cc'])),2)
-
-    fig = px.line(x=pivot_df['date'], y = pivot_df['sentiment_score'])
-    # Change title 
-    fig.update_layout(title='Trendline of sentiment score')
-    # Change the x-axis name
-    fig.update_xaxes(title='Date')
-    # Change the y-axis name
-    fig.update_yaxes(title='Calculated sentiment score')
-    # # Update Legend name and title 
-    fig.add_hline(y=pivot_df['sentiment_score'].mean(), line_width=3, line_dash="dash", line_color="red")
     
-    fig.update_layout(
-        {
-        'plot_bgcolor' :'rgba(0,0,0,0)',
-        #    'hovermode':"y"
+    if len(pivot_df) >0 :
+        pivot_df.columns = [' '.join(col).strip() for col in pivot_df.columns.values]
+        pivot_df = pivot_df.reset_index()
+        pivot_df.columns = ['date','neg_cc','pos_cc']
+        pivot_df['sentiment_score'] = round((100*pivot_df['pos_cc']/(pivot_df['pos_cc']+pivot_df['neg_cc'])),2)
+
+        fig = px.line(x=pivot_df['date'], y = pivot_df['sentiment_score'])
+        # Change title 
+        fig.update_layout(title='Trendline of sentiment score')
+        # Change the x-axis name
+        fig.update_xaxes(title='Date')
+        # Change the y-axis name
+        fig.update_yaxes(title='Calculated sentiment score')
+        # # Update Legend name and title 
+        fig.add_hline(y=pivot_df['sentiment_score'].mean(), line_width=3, line_dash="dash", line_color="red")
+        fig.update_yaxes(range = [0,100])
+
+        fig.update_layout(
+            {
+            'plot_bgcolor' :'rgba(0,0,0,0)',
+            #    'hovermode':"y"
+            }
+                )  
+        fig.add_annotation(dict(font=dict(color='black',size=15),
+                                            x=pivot_df['date'].max(),
+                                            y=pivot_df['sentiment_score'].mean()*1.04,
+                                            showarrow=False,
+                                            text="Mean :{}".format(round(pivot_df['sentiment_score'].mean(),1)),
+                                            textangle=0,
+                                            xanchor='right'))
+    else :
+        return {
+        "layout": {
+            "xaxis": {
+                "visible": false
+            },
+            "yaxis": {
+                "visible": false
+            },
+            "annotations": [
+                {
+                    "text": "No matching data found",
+                    "xref": "paper",
+                    "yref": "paper",
+                    "showarrow": false,
+                    "font": {
+                        "size": 28
+                    }
+                }
+            ]
         }
-            )  
-    fig.add_annotation(dict(font=dict(color='black',size=15),
-                                        x=pivot_df['date'].max(),
-                                        y=pivot_df['sentiment_score'].mean()*1.04,
-                                        showarrow=False,
-                                        text="Mean :{}".format(round(pivot_df['sentiment_score'].mean(),1)),
-                                        textangle=0,
-                                        xanchor='right'))
+    }
 
  
         
@@ -1211,19 +1249,44 @@ def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, v
         print("Len of dataframe = {}".format(len(temp_df)))
 
     grouped_df = temp_df.groupby(['sentiment_tag'], as_index= False)['review_id'].count()
-
+    print("getting pie chart")
     if len(temp_df) >0:
         fig =  px.pie(
           grouped_df,
             values='review_id',
             names='sentiment_tag',
             hole=.3,
-            )
+            color_discrete_map=["#F6635C", "#85A389"]
+            
+            # {'POSITIVE':'lightcyan',
+            #                      'NEGATIVE':'darkblue'}
+            # 
+        )
 
         fig.update_layout(title='Piechart of Sentiment Distribution')
         return fig
     else :
-        return str({"update"})
+        return {
+        "layout": {
+            "xaxis": {
+                "visible": false
+            },
+            "yaxis": {
+                "visible": false
+            },
+            "annotations": [
+                {
+                    "text": "No matching data found",
+                    "xref": "paper",
+                    "yref": "paper",
+                    "showarrow": false,
+                    "font": {
+                        "size": 28
+                    }
+                }
+            ]
+        }
+    }
 
 #####################################################################################       
 
@@ -1287,7 +1350,7 @@ def update_review_table(n_clicks, start_date, end_date,star_rating, sentiment_li
 def clearDropDown1(n_clicks):
     print("**************** CLEAR ALL FUNCTION ********************")
     if n_clicks != 0: #Don't clear options when loading page for the first time
-        return ['2023-01-01','2023-09-15',['1','2','3','4','5'],['POSITIVE','NEGATIVE'],
+        return ['2023-07-23','2023-08-23',['1','2','3','4','5'],['POSITIVE','NEGATIVE'],
              ['Y','N'],
             ['(-1, 0]', '(0, 10]', '(10, 50]', '(50, 5000]'], 
              list(data['product_id'].unique())
