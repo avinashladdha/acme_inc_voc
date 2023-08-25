@@ -878,8 +878,10 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
                      hoverlabel_namelength=-1)
     # Change the x-axis name
     fig.update_xaxes(title='Date')
+    fig.update_xaxes(linecolor='#61677A')
     # Change the y-axis name
     fig.update_yaxes(title='#Reviews')
+    fig.update_yaxes(linecolor='#61677A')
     # Update Legend name and title 
     fig.update_layout(legend={"title":"Sentiment"},
                       hovermode='closest'
@@ -926,7 +928,7 @@ def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment
 
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
 
-    print("*************** UPDATE LINE CHART *********************")
+    print("*************** UPDATE SENTIMENT LINE CHART *********************")
     filt_dict = {'star_rating':star_rating,
                  'sentiment_tag': sentiment_list, 
                   'verified_purchase':verified_purchase,
@@ -954,24 +956,23 @@ def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment
 
         fig = px.line(x=pivot_df['date'], y = pivot_df['sentiment_score'])
         # Change title 
-        fig.update_layout(title='Trendline of sentiment score')
+        fig.update_layout({'title':'Trendline of sentiment score',
+                         'plot_bgcolor' :'rgba(0,0,0,0)',
+                        }),
         # Change the x-axis name
         fig.update_xaxes(title='Date')
+        fig.update_xaxes(linecolor='#61677A')
         # Change the y-axis name
         fig.update_yaxes(title='Calculated sentiment score')
+        fig.update_yaxes(linecolor='#61677A')
         # # Update Legend name and title 
-        fig.add_hline(y=pivot_df['sentiment_score'].mean(), line_width=3, line_dash="dash", line_color="red")
-        fig.update_yaxes(range = [0,100])
-
-        fig.update_layout(
-            {
-            'plot_bgcolor' :'rgba(0,0,0,0)',
-            #    'hovermode':"y"
-            }
-                )  
+        fig.add_hline(y=pivot_df['sentiment_score'].mean(), line_width=3, line_dash="dash", line_color="grey")
+        fig.update_yaxes(range = [0,110])
+        fig.update_traces(line_color='#0000ff')
+        
         fig.add_annotation(dict(font=dict(color='black',size=15),
                                             x=pivot_df['date'].max(),
-                                            y=pivot_df['sentiment_score'].mean()*1.04,
+                                            y=pivot_df['sentiment_score'].mean()*1.06,
                                             showarrow=False,
                                             text="Mean :{}".format(round(pivot_df['sentiment_score'].mean(),1)),
                                             textangle=0,
@@ -1024,7 +1025,7 @@ def update_products(n_clicks, start_date, end_date,star_rating, sentiment_list, 
 
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
 
-    print("*************** UPDATE LINE CHART *********************")
+    print("*************** UPDATE SENTIMENT PRODUCTS *********************")
     filt_dict = {'star_rating':star_rating,
                  'sentiment_tag': sentiment_list, 
                   'verified_purchase':verified_purchase,
@@ -1190,9 +1191,10 @@ def update_graph_5(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     grouped_df = temp_df.groupby(['star_rating'], as_index= False)['review_id'].count()
 
     if len(temp_df) >0:
-        fig = go.Figure([go.Bar(x = grouped_df['review_id'], y = grouped_df['star_rating'], marker_color = '#FA8072',
+        fig = go.Figure([go.Bar(x = grouped_df['review_id'], y = grouped_df['star_rating'], marker_color = 'royalblue',
                              orientation = 'h',
-                             textposition = 'outside'
+                             textposition = 'outside',
+                              name=""
                              )])
         fig.update_xaxes(title='# Review Count', showline=True,
                 linewidth=1,
@@ -1205,7 +1207,12 @@ def update_graph_5(n_clicks, start_date, end_date,star_rating, sentiment_list, v
                 mirror=True)
         
         fig.update_layout(title='Bar Chart of Star Rating Distribution')
-
+        fig.update_traces(
+        hovertemplate="<br>".join([
+            "#Reviews: %{x}",
+            "Star Rating: %{y}"
+        ])
+        )
 
         return fig
     else :
@@ -1249,22 +1256,32 @@ def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, v
         print("Len of dataframe = {}".format(len(temp_df)))
 
     grouped_df = temp_df.groupby(['sentiment_tag'], as_index= False)['review_id'].count()
+    
+    print("grouped DF :{}".format(grouped_df))
     print("getting pie chart")
     if len(temp_df) >0:
         fig =  px.pie(
           grouped_df,
             values='review_id',
             names='sentiment_tag',
+            color ='sentiment_tag',
             hole=.3,
-            color_discrete_map=["#F6635C", "#85A389"]
+            color_discrete_map=  #["#F6635C", "#85A389"]
             
-            # {'POSITIVE':'lightcyan',
-            #                      'NEGATIVE':'darkblue'}
-            # 
+            {'POSITIVE':'#F6635C',
+                                 'NEGATIVE':'#85A389'}
+            
         )
 
         fig.update_layout(title='Piechart of Sentiment Distribution')
+        fig.update_traces(
+        hovertemplate="<br>".join([
+
+            "#Reviews: %{value}"
+        ])
+        )
         return fig
+    
     else :
         return {
         "layout": {
