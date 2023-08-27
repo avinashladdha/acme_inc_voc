@@ -68,7 +68,7 @@ def update_dictionary(input_dict):
 
 list_adhoc = ['stars','Stars','STARS', 'star']
 stop_words = list(STOPWORDS) + list_adhoc
-data = pd.read_csv('./data/df_raw.csv')
+data = pd.read_csv('./data/df_raw_updated.csv')
 
 
 print(data.columns)
@@ -87,7 +87,7 @@ votes_dict = votes_df.to_dict('records')
 
 ## limiting to top 10 products id 
 
-date_list = pd.date_range(datetime(2021,1,1),datetime(2023,8,22)-timedelta(days=1),freq='d')
+date_list = pd.date_range(datetime(2021,1,1),datetime(2023,8,31)-timedelta(days=1),freq='d')
 data["review_date"] = np.random.choice(date_list, size=len(data))
 
 print("Total count of rows at starteing of code :{}".format(len(data)))
@@ -166,8 +166,8 @@ controls = dbc.FormGroup(
             min_date_allowed=date(2020, 12, 5),
             max_date_allowed=date(2023, 8, 23),
             initial_visible_month=date(2023, 7, 16),
-            end_date=date(2023, 7, 1), 
-            start_date=date(2023, 6, 23),
+            end_date=date(2023, 8, 31), 
+            start_date=date(2023, 8, 1),
             
             style = {
                         'font-size': '5px','display': 'inline-block',# 'border-radius' : '2px', 
@@ -236,7 +236,7 @@ controls = dbc.FormGroup(
                     'value': 'NEGATIVE'
                 }
             ],
-            value="",
+            value=["POSITIVE","NEGATIVE"],
             inline=True
         )]),
 
@@ -260,7 +260,7 @@ controls = dbc.FormGroup(
                     'value': 'N'
                 }
             ],
-            value="",
+            value=["Y","N"],
             inline=True
         )]),
 
@@ -362,7 +362,7 @@ content_summary_row = dbc.Row([
                      style={"border":"2px black solid",
                            "width" : "100%",
                             "minLength" : "100px",
-                            "minHeight" :'400px',
+                            "minHeight" :'485px',
                             'readOnly' : True,
                             'disabled' : True
                            })
@@ -389,7 +389,7 @@ content_summary_row = dbc.Row([
          """5. Value for money: Some customers felt that the products were good value for the price."""],
                   style={"border":"2px black solid",'width': '100%', 
                             "minLength" : "100px",
-                            "minHeight" :'200px',
+                            "minHeight" :'190px',
               'backgroundColor': "#C8E4B2",
                 'readOnly' : True
                         
@@ -869,38 +869,61 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     y2 = pivot_df['pos_cc']
     
     #fig = px.line(x=x, y = [y1,y2])
-    fig = px.line(x=pivot_df['date'], y = [pivot_df['neg_cc'],pivot_df['pos_cc']],
-                  color_discrete_sequence=["#F6635C", "#85A389"],
-                  #markers=True
+    # fig = px.line(x=pivot_df['date'], y = pivot_df['neg_cc'],#pivot_df['pos_cc']],
+    #               color_discrete_sequence=["#F6635C", "#85A389"],
+    #              )
+    
+    fig1 = px.line(x=pivot_df['date'], y = pivot_df['neg_cc'],#pivot_df['pos_cc']],
+                  color_discrete_sequence=["#F6635C"],
                  )
-    # Change title 
+    fig1.update_traces(
+        hovertemplate="<br>".join([
+            "Date: %{x}",
+            "Negative Reviews: %{y}"
+        ])
+        )
+
+
+    fig2 = px.line(x=pivot_df['date'], y = pivot_df['pos_cc'],#pivot_df['pos_cc']],
+                  color_discrete_sequence=[ "#85A389"],
+                 )
+    fig2.update_traces(
+        hovertemplate="<br>".join([
+            "Date: %{x}",
+            "Positive Reviews: %{y}"
+        ])
+        )
+    fig2.update_layout(legend={"title":"Sentiment"},
+                      hovermode='closest'
+                     )
+    
+    fig = go.Figure(data=fig1.data + fig2.data)
+#     # Change title 
     fig.update_layout(title='Customer sentiment trends',
                      hoverlabel_namelength=-1)
     # Change the x-axis name
+    
+
+#     # Change the y-axis name
+
+    # Update Legend name and title 
     fig.update_xaxes(title='Date')
     fig.update_xaxes(linecolor='#61677A')
-    # Change the y-axis name
+
     fig.update_yaxes(title='#Reviews')
     fig.update_yaxes(linecolor='#61677A')
-    # Update Legend name and title 
-    fig.update_layout(legend={"title":"Sentiment"},
-                      hovermode='closest'
-                     )  
-    series_names = ["Negative", "Positive"]
     
+    
+    # fig.update_layout(legend={"title":"Sentiment"},
+    #                   hovermode='closest'
+    #                  )  
+
     fig.update_layout(
         {
         'plot_bgcolor' :'rgba(0,0,0,0)',
         #    'hovermode':"y"
         }
-            )  
-
-    # for idx, name in enumerate([y1,y2]):
-    #     fig.data[idx].hovertemplate = name
-        
-        
-    newnames = {'wide_variable_0':'Negative', 'wide_variable_1': 'Positive'}
-    fig.for_each_trace(lambda t: t.update(name = newnames[t.name]))
+            )
  
         
     return fig
@@ -1367,7 +1390,7 @@ def update_review_table(n_clicks, start_date, end_date,star_rating, sentiment_li
 def clearDropDown1(n_clicks):
     print("**************** CLEAR ALL FUNCTION ********************")
     if n_clicks != 0: #Don't clear options when loading page for the first time
-        return ['2023-07-23','2023-08-23',['1','2','3','4','5'],['POSITIVE','NEGATIVE'],
+        return ['2023-08-01','2023-08-31',['1','2','3','4','5'],['POSITIVE','NEGATIVE'],
              ['Y','N'],
             ['(-1, 0]', '(0, 10]', '(10, 50]', '(50, 5000]'], 
              list(data['product_id'].unique())
