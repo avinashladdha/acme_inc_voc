@@ -71,8 +71,6 @@ stop_words = list(STOPWORDS) + list_adhoc
 data = pd.read_csv('./data/df_raw_updated.csv')
 
 
-print(data.columns)
-
 ## Adding biins for dropdown display
 bins = [-1,0, 10, 50, 5000]
 data['binned'] = pd.cut(data['total_votes'], bins) #left open binning
@@ -89,9 +87,6 @@ votes_dict = votes_df.to_dict('records')
 
 date_list = pd.date_range(datetime(2021,1,1),datetime(2023,8,31)-timedelta(days=1),freq='d')
 data["review_date"] = np.random.choice(date_list, size=len(data))
-
-print("Total count of rows at starteing of code :{}".format(len(data)))
-
 
 convert_to_str = ['star_rating','total_votes','binned']
 data[convert_to_str] = data[convert_to_str].astype('str')
@@ -357,7 +352,7 @@ content_summary_row = dbc.Row([
 #               },),
         
         
-       html.P(["""OVERALL SUMMARY:\n\n""",html.Br(),"""The reviews for these Amazon products are mixed. Some customers are pleased with the comfort and durability of the mattresses, while others find them too soft or too firm. A few customers complained about the mattresses sagging or collapsing after a short period of use. The bed frames received mixed reviews as well, with some customers finding them easy to assemble and sturdy, while others complained about squeaking, instability, or difficulty fitting a bed skirt. The chairs also received mixed reviews, with some customers finding them comfortable and others complaining about poor quality or discomfort. The desks and storage units were generally well-received, although a few customers had issues with assembly or size. The carts were praised for their convenience and storage capacity, but some customers wished the handles were adjustable."""],
+       html.Div(html.P(["""OVERALL SUMMARY:\n\n""",html.Br(),"""The reviews for these Amazon products are mixed. Some customers are pleased with the comfort and durability of the mattresses, while others find them too soft or too firm. A few customers complained about the mattresses sagging or collapsing after a short period of use. The bed frames received mixed reviews as well, with some customers finding them easy to assemble and sturdy, while others complained about squeaking, instability, or difficulty fitting a bed skirt. The chairs also received mixed reviews, with some customers finding them comfortable and others complaining about poor quality or discomfort. The desks and storage units were generally well-received, although a few customers had issues with assembly or size. The carts were praised for their convenience and storage capacity, but some customers wished the handles were adjustable."""],
                      
                      style={"border":"2px black solid",
                            "width" : "100%",
@@ -365,7 +360,7 @@ content_summary_row = dbc.Row([
                             "minHeight" :'485px',
                             'readOnly' : True,
                             'disabled' : True
-                           })
+                           }))
         
       ]
     
@@ -419,12 +414,8 @@ content_summary_row = dbc.Row([
                           'backgroundColor': "#FA9884",
                         'readOnly' : True
                         }
-                 ),
-            
-            
-            
+                 ),    
         ]
-        
         )
     ]
     ) 
@@ -583,7 +574,7 @@ content_third_row = dbc.Row(
          dbc.Col(
             dash_table.DataTable(
             id='table_kw',
-            columns=[{"name": i, "id": i} for i in keyword_df.columns],
+            columns=[{"name": i, "id": i} for i in ['Keyword','Importance(Term Frequency)']],
             style_cell={'textAlign': 'center'},
                 style_cell_conditional=[
                         {
@@ -700,9 +691,8 @@ app.layout = html.Div([sidebar, content])
    )
 def update_card_text_1(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
-    print(temp_df)
+
     print("***************UPDATE CARD TEXT 1*********************")
-    print(binned)
     filt_dict = {'star_rating':star_rating,
                  'sentiment_tag': sentiment_list, 
                   'verified_purchase':verified_purchase,
@@ -713,7 +703,7 @@ def update_card_text_1(n_clicks, start_date, end_date,star_rating, sentiment_lis
 
 
     for key, val in filt_dict_updated.items():
-        print("Chart 1 dataframe length : {}".format(len(temp_df)))
+#        print("Chart 1 dataframe length : {}".format(len(temp_df)))
         temp_df = temp_df[temp_df[key].isin(val)]
 
     return len(temp_df),len(temp_df)
@@ -1037,23 +1027,18 @@ def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment
     [Input('submit_button', 'n_clicks'),
     Input('my-date-picker-range', 'start_date'),
     Input('my-date-picker-range', 'end_date')],
-    [State('star_rating', 'value'), 
-     State('sentiment_list', 'value'), 
-     State('verified_purchase', 'value'), 
-     State('cc_votes', 'value'), 
-     State('product_id', 'value')]
+    [State('verified_purchase', 'value'), 
+     State('cc_votes', 'value')]
     )
 
-def update_products(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
+def update_products(n_clicks, start_date, end_date, verified_purchase,binned):
 
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
 
     print("*************** UPDATE SENTIMENT PRODUCTS *********************")
-    filt_dict = {'star_rating':star_rating,
-                 'sentiment_tag': sentiment_list, 
+    filt_dict = {
                   'verified_purchase':verified_purchase,
-                 'binned' : binned, 
-                 'product_id' : product_id}
+                 'binned' : binned}
     
     filt_dict_updated = update_dictionary(filt_dict)
 
@@ -1073,11 +1058,10 @@ def update_products(n_clicks, start_date, end_date,star_rating, sentiment_list, 
     pivot_df.columns = ['product_id','neg_cc','pos_cc']
     pivot_df['total_count'] = pivot_df['pos_cc']+pivot_df['neg_cc']
     pivot_df['sentiment_score'] = round((100*pivot_df['pos_cc']/pivot_df['total_count']),2)
-    print(pivot_df)
+
     pivot_df = pivot_df.drop(['pos_cc','neg_cc'], axis =1)
-    
     pivot_df.columns = ['Product ID', 'Total Reviews analysed','Sentiment Score']
-    print(pivot_df)
+
     top_products = pivot_df.sort_values(['Sentiment Score'], ascending = False).head(3)
     bottom_products = pivot_df.sort_values(['Sentiment Score'], ascending = True).head(3)
     
@@ -1117,9 +1101,9 @@ def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     #print("Filtered dictionary :{}".format(filt_dict_updated))
 
     for key, val in filt_dict_updated.items():
-        print("Filtering {}".format(key))
+        #print("Filtering {}".format(key))
         temp_df = temp_df[temp_df[key].isin(val)]
-        print("Len of dataframe = {}".format(len(temp_df)))
+        #print("Len of dataframe = {}".format(len(temp_df)))
     if len(temp_df) >0:
 
     # Sample data and figure
@@ -1164,19 +1148,34 @@ def update_keyword_table(n_clicks, start_date, end_date,star_rating, sentiment_l
     print("Filtered dictionary :{}".format(filt_dict_updated))
 
     for key, val in filt_dict_updated.items():
-        print("Filtering {}".format(key))
+        #print("Filtering {}".format(key))
         temp_df = temp_df[temp_df[key].isin(val)]
-        print("Len of dataframe = {}".format(len(temp_df)))
+        #print("Len of dataframe = {}".format(len(temp_df)))
         #print("Top KW dataframe...")
         #print(top_keywords_df(flatten_list(temp_df['tags'].to_list())))
 
-    if len(temp_df) >0:
-        keyword_df = top_keywords_df(flatten_list(temp_df['tags'].to_list()))
-        #print(keyword_df)
-        return keyword_df.head(10).to_dict('records')
+        
+    word_list = flatten_list(temp_df['tags'].to_list())
+    #print(word_list)
+    list_updated = [word for word in word_list if word not in stop_words] 
+    d = Counter(list_updated)
+    wc = WordCloud(stopwords = stop_words,background_color='white', width=550, height=400,max_words=30)
+    wc.fit_words(d)
+
+    keyword_df = pd.DataFrame(wc.words_,index=[0]).T.reset_index()
+    #print(keyword_df)
+    keyword_df.columns = ['Keyword','Importance(Term Frequency)']
+    keyword_df['Importance(Term Frequency)'] = keyword_df['Importance(Term Frequency)'].apply({lambda x : round(x,2)})
     
-    else :
-        return "Insufficient data"
+    return keyword_df.head(10).to_dict('records')
+        
+#     if len(temp_df) >0:
+#         keyword_df = top_keywords_df(flatten_list(temp_df['tags'].to_list()))
+#         #print(keyword_df)
+#         return keyword_df.head(10).to_dict('records')
+    
+#     else :
+#         return "Insufficient data"
 
 ## HORIZONTAL BAR CHART
 @app.callback(
@@ -1207,9 +1206,9 @@ def update_graph_5(n_clicks, start_date, end_date,star_rating, sentiment_list, v
 
 
     for key, val in filt_dict_updated.items():
-        print("Filtering {}".format(key))
+        #print("Filtering {}".format(key))
         temp_df = temp_df[temp_df[key].isin(val)]
-        print("Len of dataframe = {}".format(len(temp_df)))
+        #print("Len of dataframe = {}".format(len(temp_df)))
 
     grouped_df = temp_df.groupby(['star_rating'], as_index= False)['review_id'].count()
 
@@ -1274,13 +1273,13 @@ def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     filt_dict_updated = update_dictionary(filt_dict)
 
     for key, val in filt_dict_updated.items():
-        print("Filtering {}".format(key))
+        #print("Filtering {}".format(key))
         temp_df = temp_df[temp_df[key].isin(val)]
-        print("Len of dataframe = {}".format(len(temp_df)))
+        #print("Len of dataframe = {}".format(len(temp_df)))
 
     grouped_df = temp_df.groupby(['sentiment_tag'], as_index= False)['review_id'].count()
     
-    print("grouped DF :{}".format(grouped_df))
+    #print("grouped DF :{}".format(grouped_df))
     print("getting pie chart")
     if len(temp_df) >0:
         fig =  px.pie(
@@ -1291,8 +1290,8 @@ def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, v
             hole=.3,
             color_discrete_map=  #["#F6635C", "#85A389"]
             
-            {'POSITIVE':'#F6635C',
-                                 'NEGATIVE':'#85A389'}
+            {'POSITIVE':'#85A389'  ,
+                                 'NEGATIVE':'#F6635C'}
             
         )
 
@@ -1366,7 +1365,7 @@ def update_review_table(n_clicks, start_date, end_date,star_rating, sentiment_li
     
     temp_df.columns = ['Product ID','Review Date','Review Text']
     temp_df = temp_df.sort_values(['Review Date'], ascending = False)
-    print(temp_df.columns)
+
     if len(temp_df) >0:
         return temp_df.head(20).to_dict('records')
     
