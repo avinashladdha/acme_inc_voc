@@ -15,12 +15,12 @@ from io import BytesIO # for wordcloud
 from datetime import datetime, timedelta
 
 from nltk.stem import PorterStemmer 
-from PIL import Image
+# from PIL import Image
 
 
-import logging
+# import logging
 
-logging.getLogger('werkzeug').setLevel(logging.ERROR)
+# logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 
 ##############################################          FUNCTIONS             ##################################################
