@@ -69,6 +69,9 @@ def update_dictionary(input_dict):
 list_adhoc = ['stars','Stars','STARS', 'star']
 stop_words = list(STOPWORDS) + list_adhoc
 data = pd.read_csv('./data/df_raw_updated.csv')
+data['review_date'] = pd.to_datetime(data['review_date'])
+#data['review_date'] = data['review_date'].dt.strftime('%d-%m-%Y') 
+
 
 
 ## Adding biins for dropdown display
@@ -85,8 +88,8 @@ votes_dict = votes_df.to_dict('records')
 
 ## limiting to top 10 products id 
 
-date_list = pd.date_range(datetime(2021,1,1),datetime(2023,8,31)-timedelta(days=1),freq='d')
-data["review_date"] = np.random.choice(date_list, size=len(data))
+# date_list = pd.date_range(datetime(2021,1,1),datetime(2023,8,31)-timedelta(days=1),freq='d')
+# data["review_date"] = np.random.choice(date_list, size=len(data))
 
 convert_to_str = ['star_rating','total_votes','binned']
 data[convert_to_str] = data[convert_to_str].astype('str')
@@ -159,7 +162,7 @@ controls = dbc.FormGroup(
             id='my-date-picker-range',
                 display_format = 'DD-MM-YYYY',
             min_date_allowed=date(2020, 12, 5),
-            max_date_allowed=date(2023, 8, 23),
+            max_date_allowed=date(2023, 8, 31),
             initial_visible_month=date(2023, 7, 16),
             end_date=date(2023, 8, 31), 
             start_date=date(2023, 8, 1),
@@ -178,8 +181,8 @@ controls = dbc.FormGroup(
                             }
                     ),
         html.Div(id='output-container-date-picker-range'),
-        html.P('Reviews time duration : 1 Jan 2021 - 22 Aug 2023', style={
-            'textAlign': 'center',"width": "100%", 'font-size': '10px'
+        html.P('Reviews time duration : 1 Jan 2021 - 31 Aug 2023', style={
+            'textAlign': 'center',"width": "100%", 'font-size': '12px'
         })
         ,
         html.Br(),
@@ -352,15 +355,15 @@ content_summary_row = dbc.Row([
 #               },),
         
         
-       html.Div(html.P(["""OVERALL SUMMARY:\n\n""",html.Br(),"""The reviews for these Amazon products are mixed. Some customers are pleased with the comfort and durability of the mattresses, while others find them too soft or too firm. A few customers complained about the mattresses sagging or collapsing after a short period of use. The bed frames received mixed reviews as well, with some customers finding them easy to assemble and sturdy, while others complained about squeaking, instability, or difficulty fitting a bed skirt. The chairs also received mixed reviews, with some customers finding them comfortable and others complaining about poor quality or discomfort. The desks and storage units were generally well-received, although a few customers had issues with assembly or size. The carts were praised for their convenience and storage capacity, but some customers wished the handles were adjustable."""],
+       html.P(["""OVERALL SUMMARY:\n\n""",html.Br(),"""The reviews for these Amazon products are mixed. Some customers are pleased with the comfort and durability of the mattresses, while others find them too soft or too firm. A few customers complained about the mattresses sagging or collapsing after a short period of use. The bed frames received mixed reviews as well, with some customers finding them easy to assemble and sturdy, while others complained about squeaking, instability, or difficulty fitting a bed skirt. The chairs also received mixed reviews, with some customers finding them comfortable and others complaining about poor quality or discomfort. The desks and storage units were generally well-received, although a few customers had issues with assembly or size. The carts were praised for their convenience and storage capacity, but some customers wished the handles were adjustable."""],
                      
-                     style={"border":"2px black solid",
+                     style={"border":"1px black solid",
                            "width" : "100%",
-                            "minLength" : "100px",
-                            "minHeight" :'485px',
-                            'readOnly' : True,
-                            'disabled' : True
-                           }))
+                            "height" :'100%',
+                           # "minLength" : "100px",
+                           # "minHeight" :'400px',
+                            
+                           })
         
       ]
     
@@ -383,8 +386,9 @@ content_summary_row = dbc.Row([
          """4. Easy assembly: Customers appreciated that the products were easy to assemble.""",html.Br(),
          """5. Value for money: Some customers felt that the products were good value for the price."""],
                   style={"border":"2px black solid",'width': '100%', 
-                            "minLength" : "100px",
-                            "minHeight" :'190px',
+                            #"minLength" : "100px",
+                           # "minHeight" :'190px',
+                          "height" :'55%',
               'backgroundColor': "#C8E4B2",
                 'readOnly' : True
                         
@@ -409,8 +413,9 @@ content_summary_row = dbc.Row([
              """2. The bed frames have legs that are inconveniently placed, causing customers to often hit their feet on them. Additionally, some customers reported that the frames were too high or too low.""",html.Br(),
              """3. Some customers reported that the chairs were unstable, uncomfortable, and of poor quality."""],
                   style={"border":"2px black solid",'width': '100%', 
-                         "minLength" : "100px",
-                          "minHeight" :'200px',
+                        # "minLength" : "100px",
+                        #  "minHeight" :'200px',
+                          "height" :'42%',
                           'backgroundColor': "#FA9884",
                         'readOnly' : True
                         }
@@ -635,6 +640,7 @@ content = html.Div(
     [
         html.H2('Vire Insights | VoC v1.0', style=TEXT_STYLE),
         content_summary_row,
+        html.Br(),
         content_summary_table,
         html.Hr(),
         html.H4('Overall summary for selected time window', style=TEXT_STYLE),
@@ -851,6 +857,8 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
 
     if len(pivot_df) >0:
         pivot_df.columns = ['date','neg_cc','pos_cc']
+        
+        #pivot_df['date'] = pivot_df['date'].dt.strftime('%d-%m-%Y')
     else :
         pivot_df = pd.DataFrame(columns = ['date','neg_cc','pos_cc'])
 
@@ -904,6 +912,11 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     fig.update_yaxes(title='#Reviews')
     fig.update_yaxes(linecolor='#61677A')
     
+    fig.update_xaxes(tickangle=-45,
+                 tickmode = 'array',
+                 tickvals = pivot_df['date'][0::3],
+                 #ticktext= [d.strftime('%Y-%m-%d') for d in datelist]
+                    )
 
     fig.update_layout(
         {
@@ -984,6 +997,11 @@ def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment
                     "Sentiment Score: %{y}"
                 ]),
 
+                )
+        fig.update_xaxes(tickangle=-45,
+             tickmode = 'array',
+             tickvals = pivot_df['date'][0::3],
+             #ticktext= [d.strftime('%Y-%m-%d') for d in datelist]
                 )
         
         fig.add_annotation(dict(font=dict(color='black',size=15),
