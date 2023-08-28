@@ -14,9 +14,9 @@ from wordcloud import WordCloud, STOPWORDS
 from io import BytesIO # for wordcloud 
 from datetime import datetime, timedelta
 
-# import logging
+import logging
 
-# logging.getLogger('werkzeug').setLevel(logging.ERROR)
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 
 ##############################################          FUNCTIONS             ##################################################
@@ -296,7 +296,7 @@ controls = dbc.FormGroup(
             value=list(data['product_id'].unique())[0:10],  # default value
             multi=True,
             style={
-                'maxHeight' :'500px',
+                'maxHeight' :'400px',
                 'minHeight' :'50px',
                 #'height' :'200px',
                 #'overflow-y':'auto'
@@ -574,7 +574,7 @@ content_third_row = dbc.Row(
          dbc.Col(
             dash_table.DataTable(
             id='table_kw',
-            columns=[{"name": i, "id": i} for i in ['Keyword','Importance(Term Frequency)']],
+            columns=[{"name": i, "id": i} for i in ['Keyword','Importance(Frequency/Max Frequency)']],
             style_cell={'textAlign': 'center'},
                 style_cell_conditional=[
                         {
@@ -643,7 +643,7 @@ content = html.Div(
         html.Hr(),
         content_second_row,
         content_sentiment_row,
-        html.H6('Top and bottom products based on sentiment score', style={
+        html.H6('Top and bottom products based on sentiment score (for selected date ranges)', style={
                                                                         'textAlign': 'left',
                                                                         'color': '#191970'
                                                                     }),
@@ -864,54 +864,50 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     #              )
     
     fig1 = px.line(x=pivot_df['date'], y = pivot_df['neg_cc'],#pivot_df['pos_cc']],
-                  color_discrete_sequence=["#F6635C"],
+                  color_discrete_sequence=["#F6635C"],labels={
+                                                            "neg_cc": "Negative", 
+                                                            }
                  )
     fig1.update_traces(
         hovertemplate="<br>".join([
             "Date: %{x}",
             "Negative Reviews: %{y}"
-        ])
+        ]),
+
         )
 
 
     fig2 = px.line(x=pivot_df['date'], y = pivot_df['pos_cc'],#pivot_df['pos_cc']],
-                  color_discrete_sequence=[ "#85A389"],
+                  color_discrete_sequence=[ "#85A389"]
                  )
     fig2.update_traces(
         hovertemplate="<br>".join([
             "Date: %{x}",
-            "Positive Reviews: %{y}"
-        ])
+            "Positive Reviews: %{y}"])
         )
-    fig2.update_layout(legend={"title":"Sentiment"},
-                      hovermode='closest'
-                     )
-    
-    fig = go.Figure(data=fig1.data + fig2.data)
-#     # Change title 
-    fig.update_layout(title='Customer sentiment trends',
-                     hoverlabel_namelength=-1)
-    # Change the x-axis name
     
 
-#     # Change the y-axis name
+    layout = go.Layout(title = "Customer sentiment trends",showlegend = True)
 
-    # Update Legend name and title 
+    fig = go.Figure(data=fig1.data + fig2.data, layout = layout)
+
+    fig.update_traces(showlegend=True)
+    fig.update_layout(legend_title_text='Sentiment')
+    
+    fig['data'][0]['name'] = 'Negative'
+    fig['data'][1]['name'] = 'Positive'
+
+    # Update AXES name and title 
     fig.update_xaxes(title='Date')
     fig.update_xaxes(linecolor='#61677A')
 
     fig.update_yaxes(title='#Reviews')
     fig.update_yaxes(linecolor='#61677A')
     
-    
-    # fig.update_layout(legend={"title":"Sentiment"},
-    #                   hovermode='closest'
-    #                  )  
 
     fig.update_layout(
         {
         'plot_bgcolor' :'rgba(0,0,0,0)',
-        #    'hovermode':"y"
         }
             )
  
@@ -1164,8 +1160,8 @@ def update_keyword_table(n_clicks, start_date, end_date,star_rating, sentiment_l
 
     keyword_df = pd.DataFrame(wc.words_,index=[0]).T.reset_index()
     #print(keyword_df)
-    keyword_df.columns = ['Keyword','Importance(Term Frequency)']
-    keyword_df['Importance(Term Frequency)'] = keyword_df['Importance(Term Frequency)'].apply({lambda x : round(x,2)})
+    keyword_df.columns = ['Keyword','Importance(Frequency/Max Frequency)']
+    keyword_df['Importance(Frequency/Max Frequency)'] = keyword_df['Importance(Frequency/Max Frequency)'].apply({lambda x : round(x,2)})
     
     return keyword_df.head(10).to_dict('records')
         
