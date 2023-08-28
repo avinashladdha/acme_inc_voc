@@ -978,6 +978,13 @@ def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment
         fig.add_hline(y=pivot_df['sentiment_score'].mean(), line_width=3, line_dash="dash", line_color="grey")
         fig.update_yaxes(range = [0,110])
         fig.update_traces(line_color='#0000ff')
+        fig.update_traces(
+                hovertemplate="<br>".join([
+                    "Date: %{x}",
+                    "Sentiment Score: %{y}"
+                ]),
+
+                )
         
         fig.add_annotation(dict(font=dict(color='black',size=15),
                                             x=pivot_df['date'].max(),
