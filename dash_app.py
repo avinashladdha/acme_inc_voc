@@ -1144,19 +1144,13 @@ def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     
         return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
     else :
-        img = Image.open('filter_display.png')
-        fig = go.Figure()
-        fig.add_layout_image(
-                dict(
-                    x=0,
-                    opacity=1.0,
-                    layer="below",
-                    sizing="stretch",
-                    source=img))
-        temp = fig.to_image()
         
         
-        return 'data:image/png;base64,{}'.format(base64.b64encode(temp.getvalue()).decode())
+        image_filename = './filter_display.png' # replace with your own image
+        encoded_image = base64.b64encode(open(image_filename, 'rb').read())
+
+
+        return 'data:image/png;base64,{}'.format(encoded_image) #html.Img(src=app.get_asset_url('my-image.png')) #
     
     
 
