@@ -14,6 +14,10 @@ from wordcloud import WordCloud, STOPWORDS
 from io import BytesIO # for wordcloud 
 from datetime import datetime, timedelta
 
+from nltk.stem import PorterStemmer 
+from PIL import Image
+
+
 import logging
 
 logging.getLogger('werkzeug').setLevel(logging.ERROR)
@@ -37,16 +41,22 @@ def generate_table(dataframe, max_rows=100):
 
 def top_keywords_df(list):
     list_updated = [word for word in list if word not in stop_words] 
+    ps = PorterStemmer()
+    list_updated = [ps.stem(word) for word in list_updated]
+    
     d = Counter(list_updated)
     keyword_df_temp = pd.DataFrame(d,index=[0]).T.reset_index()
     keyword_df_temp.columns = ['Keyword', "Frequency"]
     keyword_df_temp = keyword_df_temp.sort_values(["Frequency"], ascending = False)
-    keyword_df_temp["% Review with keyword"] = round(100*keyword_df_temp["Frequency"]/keyword_df_temp["Frequency"].sum(),2)
+    #keyword_df_temp["% Review with keyword"] = round(100*keyword_df_temp["Frequency"]/keyword_df_temp["Frequency"].sum(),2)
     
     return keyword_df_temp
 
 def plot_wordcloud(list):
-    list_updated = [word for word in list if word not in stop_words] 
+    list_updated = [word for word in list if word not in stop_words]
+    ps = PorterStemmer()
+    list_updated = [ps.stem(word) for word in list_updated]
+    
     d = Counter(list_updated)
     wc = WordCloud(stopwords = stop_words,background_color='white', width=550, height=400,max_words=30)
     
@@ -357,7 +367,7 @@ content_summary_row = dbc.Row([
         
        html.P(["""OVERALL SUMMARY:\n\n""",html.Br(),"""The reviews for these Amazon products are mixed. Some customers are pleased with the comfort and durability of the mattresses, while others find them too soft or too firm. A few customers complained about the mattresses sagging or collapsing after a short period of use. The bed frames received mixed reviews as well, with some customers finding them easy to assemble and sturdy, while others complained about squeaking, instability, or difficulty fitting a bed skirt. The chairs also received mixed reviews, with some customers finding them comfortable and others complaining about poor quality or discomfort. The desks and storage units were generally well-received, although a few customers had issues with assembly or size. The carts were praised for their convenience and storage capacity, but some customers wished the handles were adjustable."""],
                      
-                     style={"border":"1px black solid",
+                     style={"border":"2px black solid",
                            "width" : "100%",
                             "height" :'100%',
                            # "minLength" : "100px",
@@ -579,7 +589,7 @@ content_third_row = dbc.Row(
          dbc.Col(
             dash_table.DataTable(
             id='table_kw',
-            columns=[{"name": i, "id": i} for i in ['Keyword','Importance(Frequency/Max Frequency)']],
+            columns=[{"name": i, "id": i} for i in ['Keyword','Relevance']],
             style_cell={'textAlign': 'center'},
                 style_cell_conditional=[
                         {
@@ -1015,14 +1025,14 @@ def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment
         return {
         "layout": {
             "xaxis": {
-                "visible": false
+                "visible": True
             },
             "yaxis": {
-                "visible": false
+                "visible": True
             },
             "annotations": [
                 {
-                    "text": "No matching data found",
+                    "text": "Add more data",
                     "xref": "paper",
                     "yref": "paper",
                     "showarrow": false,
@@ -1047,25 +1057,23 @@ def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment
     ],
     [Input('submit_button', 'n_clicks'),
     Input('my-date-picker-range', 'start_date'),
-    Input('my-date-picker-range', 'end_date')],
-    [State('verified_purchase', 'value'), 
-     State('cc_votes', 'value')]
+    Input('my-date-picker-range', 'end_date')]
     )
 
-def update_products(n_clicks, start_date, end_date, verified_purchase,binned):
+def update_products(n_clicks, start_date, end_date):
 
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
 
     print("*************** UPDATE SENTIMENT PRODUCTS *********************")
-    filt_dict = {
-                  'verified_purchase':verified_purchase,
-                 'binned' : binned}
+#     filt_dict = {
+#                   'verified_purchase':'verified_purchase',
+#                  'binned' : 'binned'}
     
-    filt_dict_updated = update_dictionary(filt_dict)
+#     filt_dict_updated = update_dictionary(filt_dict)
 
 
-    for key, val in filt_dict_updated.items():
-        temp_df = temp_df[temp_df[key].isin(val)]
+#     for key, val in filt_dict_updated.items():
+#         temp_df = temp_df[temp_df[key].isin(val)]
 
     ## Building a top_product sentiment table 
     grouped_df = temp_df.groupby(['product_id','sentiment_tag'], as_index = False)['review_id'].count()
@@ -1092,7 +1100,6 @@ def update_products(n_clicks, start_date, end_date, verified_purchase,binned):
 
 ## WORDCLOUD 
 @app.callback(
-    #Output('graph_4', 'img'),
     Output('wordcloud_img', 'src'),
     [Input('submit_button', 'n_clicks'),
     Input('my-date-picker-range', 'start_date'),
@@ -1104,6 +1111,7 @@ def update_products(n_clicks, start_date, end_date, verified_purchase,binned):
      State('product_id', 'value')
      ]
     )
+
 def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
 
 
@@ -1125,7 +1133,7 @@ def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, v
         #print("Filtering {}".format(key))
         temp_df = temp_df[temp_df[key].isin(val)]
         #print("Len of dataframe = {}".format(len(temp_df)))
-    if len(temp_df) >0:
+    if len(temp_df) >5:
 
     # Sample data and figure
         img = BytesIO()
@@ -1133,10 +1141,24 @@ def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, v
         #print(word_list)
         fig = plot_wordcloud(word_list)
         fig.save(img, format="PNG")
-
+    
         return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
     else :
-        return str({"update"})
+        img = Image.open('filter_display.png')
+        fig = go.Figure()
+        fig.add_layout_image(
+                dict(
+                    x=0,
+                    opacity=1.0,
+                    layer="below",
+                    sizing="stretch",
+                    source=img))
+        temp = fig.to_image()
+        
+        
+        return 'data:image/png;base64,{}'.format(base64.b64encode(temp.getvalue()).decode())
+    
+    
 
 #####################################################################################
 
@@ -1175,28 +1197,31 @@ def update_keyword_table(n_clicks, start_date, end_date,star_rating, sentiment_l
         #print("Top KW dataframe...")
         #print(top_keywords_df(flatten_list(temp_df['tags'].to_list())))
 
-        
+    df_length = len(temp_df)
+    
     word_list = flatten_list(temp_df['tags'].to_list())
     #print(word_list)
-    list_updated = [word for word in word_list if word not in stop_words] 
-    d = Counter(list_updated)
-    wc = WordCloud(stopwords = stop_words,background_color='white', width=550, height=400,max_words=30)
-    wc.fit_words(d)
+#     list_updated = [word for word in word_list if word not in stop_words] 
+#     d = Counter(list_updated)
+#     wc = WordCloud(stopwords = stop_words,background_color='white', width=550, height=400,max_words=30)
+#     wc.fit_words(d)
 
-    keyword_df = pd.DataFrame(wc.words_,index=[0]).T.reset_index()
-    #print(keyword_df)
-    keyword_df.columns = ['Keyword','Importance(Frequency/Max Frequency)']
-    keyword_df['Importance(Frequency/Max Frequency)'] = keyword_df['Importance(Frequency/Max Frequency)'].apply({lambda x : round(x,2)})
+#     keyword_df = pd.DataFrame(wc.words_,index=[0]).T.reset_index()
+#     #print(keyword_df)
+#     keyword_df.columns = ['Keyword','Relevance']
+#     keyword_df['Relevance'] = keyword_df['Relevance'].apply({lambda x : round(x,2)})
     
-    return keyword_df.head(10).to_dict('records')
+#     return keyword_df.head(10).to_dict('records')
         
-#     if len(temp_df) >0:
-#         keyword_df = top_keywords_df(flatten_list(temp_df['tags'].to_list()))
-#         #print(keyword_df)
-#         return keyword_df.head(10).to_dict('records')
+    if len(temp_df) >0:
+        keyword_df = top_keywords_df(flatten_list(temp_df['tags'].to_list()))
+        keyword_df['Relevance'] = round(100*keyword_df['Frequency']/df_length,2)
+        keyword_df =keyword_df.drop(['Frequency'], axis = 1)
+        #print(keyword_df)
+        return keyword_df.head(10).to_dict('records')
     
-#     else :
-#         return "Insufficient data"
+    else :
+        return "Insufficient data"
 
 ## HORIZONTAL BAR CHART
 @app.callback(
@@ -1329,10 +1354,10 @@ def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, v
         return {
         "layout": {
             "xaxis": {
-                "visible": false
+                "visible": True
             },
             "yaxis": {
-                "visible": false
+                "visible": True
             },
             "annotations": [
                 {
@@ -1386,6 +1411,7 @@ def update_review_table(n_clicks, start_date, end_date,star_rating, sentiment_li
     
     temp_df.columns = ['Product ID','Review Date','Review Text']
     temp_df = temp_df.sort_values(['Review Date'], ascending = False)
+    temp_df = temp_df.drop_duplicates(['Product ID', 'Review Text'], keep='first')
 
     if len(temp_df) >0:
         return temp_df.head(20).to_dict('records')
