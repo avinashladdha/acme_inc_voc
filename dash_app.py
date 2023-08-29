@@ -170,7 +170,7 @@ controls = dbc.FormGroup(
         }),
             html.Div(dcc.DatePickerRange(
             id='my-date-picker-range',
-                display_format = 'DD-MM-YYYY',
+            display_format = 'DD-MM-YYYY',
             min_date_allowed=date(2020, 12, 5),
             max_date_allowed=date(2023, 8, 31),
             initial_visible_month=date(2023, 7, 16),
@@ -1235,7 +1235,7 @@ def handle_error(n_clicks, start_date, end_date,star_rating, sentiment_list, ver
         ret_str = "Please add more parameters to display the wordcloud"
         ret_str_kw = "Please add more parameters to display the frequency table."
         
-        return ret_str,ret_str_kw
+        return "",""
 
 #####################################################################################
 
