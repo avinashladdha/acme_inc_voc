@@ -14,13 +14,13 @@ from wordcloud import WordCloud, STOPWORDS
 from io import BytesIO # for wordcloud 
 from datetime import datetime, timedelta
 
-from nltk.stem import PorterStemmer 
+#from nltk.stem import PorterStemmer 
 # from PIL import Image
 
 
-# import logging
+import logging
 
-# logging.getLogger('werkzeug').setLevel(logging.ERROR)
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 
 ##############################################          FUNCTIONS             ##################################################
@@ -41,8 +41,8 @@ def generate_table(dataframe, max_rows=100):
 
 def top_keywords_df(list):
     list_updated = [word for word in list if word not in stop_words] 
-    ps = PorterStemmer()
-    list_updated = [ps.stem(word) for word in list_updated]
+    # ps = PorterStemmer()
+    # list_updated = [ps.stem(word) for word in list_updated]
     
     d = Counter(list_updated)
     keyword_df_temp = pd.DataFrame(d,index=[0]).T.reset_index()
@@ -54,8 +54,8 @@ def top_keywords_df(list):
 
 def plot_wordcloud(list):
     list_updated = [word for word in list if word not in stop_words]
-    ps = PorterStemmer()
-    list_updated = [ps.stem(word) for word in list_updated]
+    # ps = PorterStemmer()
+    # list_updated = [ps.stem(word) for word in list_updated]
     
     d = Counter(list_updated)
     wc = WordCloud(stopwords = stop_words,background_color='white', width=550, height=400,max_words=30)
@@ -370,6 +370,7 @@ content_summary_row = dbc.Row([
                      style={"border":"2px black solid",
                            "width" : "100%",
                             "height" :'100%',
+                            "padding-top": "40px"
                            # "minLength" : "100px",
                            # "minHeight" :'400px',
                             
@@ -585,11 +586,19 @@ content_third_row = dbc.Row(
             #dcc.Graph(id='graph_4', figure="fig"), #md=12,
             html.Img(id ="wordcloud_img") , md = 8
         ),
+        
+        dbc.Alert(
+            children='',
+            id="alert-no-wordcloud",
+            fade=False,
+             color="white"
+        ),
+        
 
          dbc.Col(
-            dash_table.DataTable(
+            [dash_table.DataTable(
             id='table_kw',
-            columns=[{"name": i, "id": i} for i in ['Keyword','Relevance']],
+            columns=[{"name": i, "id": i} for i in ['Keyword','Relevance%']],
             style_cell={'textAlign': 'center'},
                 style_cell_conditional=[
                         {
@@ -598,12 +607,27 @@ content_third_row = dbc.Row(
                         }
                         ]
             #data=keyword_df.head(10).to_dict('records'),
-                ), md=3
-                )
+                ),
+             dbc.Alert(
+            children='',
+            id="alert-no-table-kw",
+            fade=False,
+            color="white"
+        ),
+             
+             ]
+                ),
+        
+        
+        
 
+        
+        
+        
 
     ]
 )
+
 
 content_fourth_row = dbc.Row(
     [
@@ -819,12 +843,15 @@ def update_card_text_4(n_clicks, start_date, end_date,star_rating, sentiment_lis
 
     for key, val in filt_dict_updated.items():
         temp_df = temp_df[temp_df[key].isin(val)]
+        
+    if len(temp_df) >0:
 
-    len_neg = len(temp_df[temp_df['sentiment_tag']=="NEGATIVE"])
-    len_pos = len(temp_df[temp_df['sentiment_tag']=="POSITIVE"])
+        len_neg = len(temp_df[temp_df['sentiment_tag']=="NEGATIVE"])
+        len_pos = len(temp_df[temp_df['sentiment_tag']=="POSITIVE"])
     # Sample data and figure
-    return round((100*(len_pos)/(len_pos+len_neg)),1)
-
+        return round((100*(len_pos)/(len_pos+len_neg)),1)
+    else :
+        return 0
 
 ## LINE CHART 
 @app.callback(
@@ -864,10 +891,12 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
 
     pivot_df.columns = [' '.join(col).strip() for col in pivot_df.columns.values]
     pivot_df = pivot_df.reset_index()
-
+    
     if len(pivot_df) >0:
         pivot_df.columns = ['date','neg_cc','pos_cc']
+        ## Calculate number of ticks 
         
+        tick_count = int(max(1,round((len(pivot_df)/10),0)))
         #pivot_df['date'] = pivot_df['date'].dt.strftime('%d-%m-%Y')
     else :
         pivot_df = pd.DataFrame(columns = ['date','neg_cc','pos_cc'])
@@ -880,60 +909,81 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, sentiment_list, v
     # fig = px.line(x=pivot_df['date'], y = pivot_df['neg_cc'],#pivot_df['pos_cc']],
     #               color_discrete_sequence=["#F6635C", "#85A389"],
     #              )
-    
-    fig1 = px.line(x=pivot_df['date'], y = pivot_df['neg_cc'],#pivot_df['pos_cc']],
-                  color_discrete_sequence=["#F6635C"],labels={
-                                                            "neg_cc": "Negative", 
-                                                            }
-                 )
-    fig1.update_traces(
-        hovertemplate="<br>".join([
-            "Date: %{x}",
-            "Negative Reviews: %{y}"
-        ]),
+    if len(pivot_df) >0 :
+        fig1 = px.line(x=pivot_df['date'], y = pivot_df['neg_cc'],#pivot_df['pos_cc']],
+                      color_discrete_sequence=["#F6635C"],labels={
+                                                                "neg_cc": "Negative", 
+                                                                }
+                     )
+        fig1.update_traces(
+            hovertemplate="<br>".join([
+                "Date: %{x}",
+                "Negative Reviews: %{y}"
+            ]),
 
-        )
-
-
-    fig2 = px.line(x=pivot_df['date'], y = pivot_df['pos_cc'],#pivot_df['pos_cc']],
-                  color_discrete_sequence=[ "#85A389"]
-                 )
-    fig2.update_traces(
-        hovertemplate="<br>".join([
-            "Date: %{x}",
-            "Positive Reviews: %{y}"])
-        )
-    
-
-    layout = go.Layout(title = "Customer sentiment trends",showlegend = True)
-
-    fig = go.Figure(data=fig1.data + fig2.data, layout = layout)
-
-    fig.update_traces(showlegend=True)
-    fig.update_layout(legend_title_text='Sentiment')
-    
-    fig['data'][0]['name'] = 'Negative'
-    fig['data'][1]['name'] = 'Positive'
-
-    # Update AXES name and title 
-    fig.update_xaxes(title='Date')
-    fig.update_xaxes(linecolor='#61677A')
-
-    fig.update_yaxes(title='#Reviews')
-    fig.update_yaxes(linecolor='#61677A')
-    
-    fig.update_xaxes(tickangle=-45,
-                 tickmode = 'array',
-                 tickvals = pivot_df['date'][0::3],
-                 #ticktext= [d.strftime('%Y-%m-%d') for d in datelist]
-                    )
-
-    fig.update_layout(
-        {
-        'plot_bgcolor' :'rgba(0,0,0,0)',
-        }
             )
- 
+
+
+        fig2 = px.line(x=pivot_df['date'], y = pivot_df['pos_cc'],#pivot_df['pos_cc']],
+                      color_discrete_sequence=[ "#85A389"]
+                     )
+        fig2.update_traces(
+            hovertemplate="<br>".join([
+                "Date: %{x}",
+                "Positive Reviews: %{y}"])
+            )
+
+
+        layout = go.Layout(title = "Customer sentiment trends",showlegend = True)
+
+        fig = go.Figure(data=fig1.data + fig2.data, layout = layout)
+
+        fig.update_traces(showlegend=True)
+        fig.update_layout(legend_title_text='Sentiment')
+
+        fig['data'][0]['name'] = 'Negative'
+        fig['data'][1]['name'] = 'Positive'
+
+        # Update AXES name and title 
+        fig.update_xaxes(title='Date')
+        fig.update_xaxes(linecolor='#61677A')
+
+        fig.update_yaxes(title='#Reviews')
+        fig.update_yaxes(linecolor='#61677A')
+
+        fig.update_xaxes(tickangle=-45,
+                     tickmode = 'array',
+                     tickvals = pivot_df['date'][0::tick_count],
+                     #ticktext= [d.strftime('%Y-%m-%d') for d in datelist]
+                        )
+
+        fig.update_layout(
+            {
+            'plot_bgcolor' :'rgba(0,0,0,0)',
+            }
+                )
+    else :
+        return {
+        "layout": {
+            "xaxis": {
+                "visible": True
+            },
+            "yaxis": {
+                "visible": True
+            },
+            "annotations": [
+                {
+                    "text": "Add more data",
+                    "xref": "paper",
+                    "yref": "paper",
+                    "showarrow": False,
+                    "font": {
+                        "size": 28
+                    }
+                }
+            ]
+        }
+    }
         
     return fig
 
@@ -986,6 +1036,8 @@ def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment
         pivot_df.columns = ['date','neg_cc','pos_cc']
         pivot_df['sentiment_score'] = round((100*pivot_df['pos_cc']/(pivot_df['pos_cc']+pivot_df['neg_cc'])),2)
 
+        tick_count = int(max(1,round((len(pivot_df)/10),0)))
+        
         fig = px.line(x=pivot_df['date'], y = pivot_df['sentiment_score'])
         # Change title 
         fig.update_layout({'title':'Trendline of sentiment score',
@@ -1010,7 +1062,7 @@ def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment
                 )
         fig.update_xaxes(tickangle=-45,
              tickmode = 'array',
-             tickvals = pivot_df['date'][0::3],
+             tickvals = pivot_df['date'][0::tick_count],
              #ticktext= [d.strftime('%Y-%m-%d') for d in datelist]
                 )
         
@@ -1035,7 +1087,7 @@ def update_graph_sentiment(n_clicks, start_date, end_date,star_rating, sentiment
                     "text": "Add more data",
                     "xref": "paper",
                     "yref": "paper",
-                    "showarrow": false,
+                    "showarrow": False,
                     "font": {
                         "size": 28
                     }
@@ -1133,6 +1185,7 @@ def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, v
         #print("Filtering {}".format(key))
         temp_df = temp_df[temp_df[key].isin(val)]
         #print("Len of dataframe = {}".format(len(temp_df)))
+        
     if len(temp_df) >5:
 
     # Sample data and figure
@@ -1143,16 +1196,43 @@ def update_graph_4(n_clicks, start_date, end_date,star_rating, sentiment_list, v
         fig.save(img, format="PNG")
     
         return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
-    else :
-        
-        
-        image_filename = './filter_display.png' # replace with your own image
-        encoded_image = base64.b64encode(open(image_filename, 'rb').read())
 
+    
+@app.callback([Output('alert-no-wordcloud', 'children'),
+              Output('alert-no-table-kw', 'children')
+              ],
+        [Input('submit_button', 'n_clicks'),
+    Input('my-date-picker-range', 'start_date'),
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('sentiment_list', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('cc_votes', 'value'), 
+     State('product_id', 'value')
+     ]
+     )
+def handle_error(n_clicks, start_date, end_date,star_rating, sentiment_list, verified_purchase,binned, product_id):
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+    print("*************** TABLE OF KEYWORDS *********************")
 
-        return 'data:image/png;base64,{}'.format(encoded_image) #html.Img(src=app.get_asset_url('my-image.png')) #
+    filt_dict = {'star_rating':star_rating,
+                 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'binned' : binned, 
+                 'product_id' : product_id}
     
-    
+    filt_dict_updated = update_dictionary(filt_dict)
+    print("Filtered dictionary :{}".format(filt_dict_updated))
+
+    for key, val in filt_dict_updated.items():
+        #print("Filtering {}".format(key))
+        temp_df = temp_df[temp_df[key].isin(val)]
+        
+    if len(temp_df)<6:
+        ret_str = "Please add more parameters to display the wordcloud"
+        ret_str_kw = "Please add more parameters to display the frequency table."
+        
+        return ret_str,ret_str_kw
 
 #####################################################################################
 
@@ -1207,15 +1287,14 @@ def update_keyword_table(n_clicks, start_date, end_date,star_rating, sentiment_l
     
 #     return keyword_df.head(10).to_dict('records')
         
-    if len(temp_df) >0:
+    if len(temp_df) >5:
         keyword_df = top_keywords_df(flatten_list(temp_df['tags'].to_list()))
-        keyword_df['Relevance'] = round(100*keyword_df['Frequency']/df_length,2)
+        keyword_df['Relevance%'] = round(100*keyword_df['Frequency']/df_length,2)
         keyword_df =keyword_df.drop(['Frequency'], axis = 1)
         #print(keyword_df)
         return keyword_df.head(10).to_dict('records')
     
-    else :
-        return "Insufficient data"
+
 
 ## HORIZONTAL BAR CHART
 @app.callback(
@@ -1278,7 +1357,27 @@ def update_graph_5(n_clicks, start_date, end_date,star_rating, sentiment_list, v
 
         return fig
     else :
-        return str({"update"})
+        return {
+        "layout": {
+            "xaxis": {
+                "visible": True
+            },
+            "yaxis": {
+                "visible": True
+            },
+            "annotations": [
+                {
+                    "text": "No matching data found",
+                    "xref": "paper",
+                    "yref": "paper",
+                    "showarrow": False,
+                    "font": {
+                        "size": 28
+                    }
+                }
+            ]
+        }
+    }
 
 #####################################################################################
 
@@ -1358,7 +1457,7 @@ def update_graph_6(n_clicks, start_date, end_date,star_rating, sentiment_list, v
                     "text": "No matching data found",
                     "xref": "paper",
                     "yref": "paper",
-                    "showarrow": false,
+                    "showarrow": False,
                     "font": {
                         "size": 28
                     }
