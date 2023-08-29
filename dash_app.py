@@ -18,9 +18,9 @@ from datetime import datetime, timedelta
 # from PIL import Image
 
 
-import logging
+# import logging
 
-logging.getLogger('werkzeug').setLevel(logging.ERROR)
+# logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 
 ##############################################          FUNCTIONS             ##################################################
@@ -370,7 +370,8 @@ content_summary_row = dbc.Row([
                      style={"border":"2px black solid",
                            "width" : "100%",
                             "height" :'100%',
-                            "padding-top": "40px"
+                            "padding-top": "40px",
+                            'font-size': '14px'
                            # "minLength" : "100px",
                            # "minHeight" :'400px',
                             
@@ -401,7 +402,8 @@ content_summary_row = dbc.Row([
                            # "minHeight" :'190px',
                           "height" :'55%',
               'backgroundColor': "#C8E4B2",
-                'readOnly' : True
+                'readOnly' : True,
+                         'font-size': '12px'
                         
                         }
                  ),
@@ -428,7 +430,8 @@ content_summary_row = dbc.Row([
                         #  "minHeight" :'200px',
                           "height" :'42%',
                           'backgroundColor': "#FA9884",
-                        'readOnly' : True
+                        'readOnly' : True,
+                         'font-size': '12px'
                         }
                  ),    
         ]
