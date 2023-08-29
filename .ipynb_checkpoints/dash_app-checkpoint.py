@@ -472,7 +472,7 @@ content_first_row = dbc.Row([
                         html.H4(id='card_title_1', children=['Total reviews analyzed'], className='card-title',
                                 style=CARD_TEXT_STYLE),
                         html.P(id='card_text_1', children='children', style=CARD_TEXT_STYLE),
-                    ]
+                    ],style={"height": "10rem"}
                 )
             ]
         ),
@@ -487,6 +487,7 @@ content_first_row = dbc.Row([
                         html.H4('Total Positive Reviews', className='card-title', style=CARD_TEXT_STYLE),
                         html.P(id='card_text_2', children='children', style=CARD_TEXT_STYLE),
                     ]
+                    ,style={"height": "10rem"}
                 ),
             ]
 
@@ -500,7 +501,7 @@ content_first_row = dbc.Row([
                     [
                         html.H4('Total Negative Reviews', className='card-title', style=CARD_TEXT_STYLE),
                         html.P(id='card_text_3', children='children', style=CARD_TEXT_STYLE),
-                    ]
+                    ],style={"height": "10rem"}
                 ),
             ]
 
@@ -513,9 +514,14 @@ content_first_row = dbc.Row([
                 dbc.CardBody(
                     [
                         html.H4('Sentiment score', className='card-title', style=CARD_TEXT_STYLE),
-                        html.H6('Percentage of positive reviews across the feedback.'),
+                        html.P('Percentage of positive reviews across the feedback.',
+                              style={
+            'textAlign': 'center',"width": "100%", 'font-size': '10px'
+                                    }
+                              
+                              ),
                         html.P(id='card_text_4', children=' ', style=CARD_TEXT_STYLE),
-                    ]
+                    ],style={"height": "10rem"}
                 ),
             ]
         ),
