@@ -889,8 +889,6 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, product_parent,# 
         fig.update_traces(showlegend=True)
         fig.update_layout(legend_title_text='Review count')
 
-
-
         # Update AXES name and title 
         fig.update_xaxes(title='Week')
         fig.update_xaxes(linecolor='#61677A')
@@ -904,7 +902,7 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, product_parent,# 
 #                      #ticktext= [d.strftime('%Y-%m-%d') for d in datelist]
 #                         )
 
-#         fig.update_layout(
+        fig.update_layout(
             {
             'plot_bgcolor' :'rgba(0,0,0,0)',
             }
