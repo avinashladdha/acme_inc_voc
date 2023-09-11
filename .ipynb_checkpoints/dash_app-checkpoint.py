@@ -24,7 +24,6 @@ logging.getLogger('werkzeug').setLevel(logging.ERROR)
 def flatten_list(list_of_lists):
     return [item for sublist in list_of_lists for item in ast.literal_eval(sublist)]
 
-
 def generate_table(dataframe, max_rows=100):
     return html.Table(
         # Header
@@ -85,9 +84,9 @@ rating_df['review_id'] =rating_df['review_id'].astype(float)
 rating_df['rating_mult'] = rating_df['star_rating']*rating_df['review_id']
 
 rating_df_gpd = rating_df.groupby(['product_id'], as_index= False).apply(lambda x: x['rating_mult'].sum()/x['review_id'].sum())
-rating_df_gpd.columns = ['Sub Product Type','Weighted Rating']
-rating_df_gpd['Weighted Rating'] = rating_df_gpd['Weighted Rating'].apply(lambda x : round(x,2))
-rating_df_gpd = rating_df_gpd.sort_values(['Weighted Rating'], ascending = False)
+rating_df_gpd.columns = ['Sub Product Type','Product Rating']
+rating_df_gpd['Product Rating'] = rating_df_gpd['Product Rating'].apply(lambda x : round(x,2))
+rating_df_gpd = rating_df_gpd.sort_values(['Product Rating'], ascending = False)
 
 # calculating date wise weighted rating of the products 
 
@@ -123,7 +122,6 @@ filt_values = {'star_rating': ['1','2','3','4'], #'sentiment_tag': ['POSITIVE','
                'product_id': list(data['product_id'].unique()),
                 'product_parent': list(data['product_parent'].unique()),
                'platform': ['amazon','flipkart'],
-              
               }
 
 review_cols = ['product_id','review_date','review_body']
@@ -340,62 +338,115 @@ sidebar = html.Div(
 
 content_summary_row = dbc.Row([
     dbc.Col([
-       
-        
        html.P(["""OVERALL SUMMARY:\n\n""",html.Br(),"""The reviews highlight multiple issues with Wakefit products including poor quality, flawed design, and subpar customer service. Customers reported problems with mattresses being too soft, causing back pain, and not living up to the 'orthopedic' label. The delivery and assembly process was criticized for being inconvenient and damaging to the products. Some customers also reported receiving defective or damaged items, including beds with uneven legs, wardrobes with cracks, and sofas that arrived dirty and wet. Customer service was described as unresponsive and unhelpful in resolving these issues. The company's return policy was also criticized for being inconsistent across different platforms. Despite some positive comments about affordability and aesthetics, the overall sentiment was of disappointment and frustration."""],
-                     
-                     style={"border":"2px black solid",
+                  style={"border":"2px black solid",
                            "width" : "100%",
                             "height" :'100%',
                             "padding-top": "40px",
                             'font-size': '14px'
-                           # "minLength" : "100px",
-                           # "minHeight" :'400px',
-                            
-                           })
-        
-      ]
-    
-    ),
-    dbc.Col(
-        [
-            
+                           }) 
+              ] 
+            ),
+                                ]
+                                ) 
 
-         html.P(["""What USERS liked:""",html.Br(),
-         """1.Wide Range of Products: Customers loved the wide variety of products available on Amazon. They appreciated the ability to find almost anything they needed on the platform, from everyday essentials to niche items.""",html.Br(),
-                """2. User-Friendly: Many reviews highlighted the user-friendly nature of Amazon products. Customers appreciated the intuitive design and easy-to-understand instructions, making the products accessible to a wide range of users."""],
-                  style={"border":"2px black solid",'width': '100%', 
-                            #"minLength" : "100px",
-                           # "minHeight" :'190px',
-                          "height" :'52%',
-              'backgroundColor': "#C8E4B2",
-                'readOnly' : True,
-                         'font-size': '12px'
-                        
-                        }
-                 ),
-         
-         
 
-            
-             html.P(["""What users COMPLAINED about:""",html.Br(),
-             
-             """1. The mattress is too soft and squishy, causing it to collapse or sag in the middle after a short period of use.""",html.Br(),
-             """2. The bed frames have legs that are inconveniently placed, causing customers to often hit their feet on them. Additionally, some customers reported that the frames were too high or too low.""",html.Br(),
-             """3. Some customers reported that the chairs were unstable, uncomfortable, and of poor quality."""],
-                  style={"border":"2px black solid",'width': '100%', 
-                        # "minLength" : "100px",
-                        #  "minHeight" :'200px',
-                          "height" :'46%',
-                          'backgroundColor': "#FA9884",
-                        'readOnly' : True,
-                         'font-size': '12px'
-                        }
-                 ),    
-        ]
-        )
-    ]
-    ) 
+
+
+
+
+table_header = [
+    html.Thead(html.Tr([html.Th("Product Type"), html.Th("Likes"),html.Th("Dislikes")]))
+                ]
+
+row1 = html.Tr([html.Td("mattress"), 
+
+    html.Td(["""1. Affordable: Customers appreciated the reasonable pricing of the product.""",html.Br(),
+    """2. Comfort: Some customers found the mattress comfortable for their sleep.""",html.Br(),
+    """3. Quality: The product was appreciated for its good quality and accurate size."""]),
+
+    html.Td(["""1. Quality and Comfort: Many customers complained about the mattress being too soft, leading to back pain and discomfort. They also mentioned that the mattress did not provide the orthopedic support as advertised.""", html.Br(),
+
+    """2. False Advertising and Reviews: Customers felt deceived by the positive reviews and felt that the brand was manipulating reviews. They also mentioned false promises made by the customer support regarding the adjustment period and return policy.""", html.Br(),
+
+    """3. Poor Customer Service: Customers were unhappy with the customer service provided by Wakefit. They mentioned issues with the return and replacement process, and felt that the brand did not stand behind their product."""])
+           ])
+
+row2 = html.Tr([html.Td("ew furniture"), 
+
+        html.Td(["""
+        1. Timely delivery and efficient assembly: Customers appreciated the prompt delivery and quick assembly of the products.""", html.Br(),
+
+        """2. Quality and design: Many customers praised the quality and design of the products, mentioning that they were sturdy and aesthetically pleasing.""", html.Br(),
+
+        """3. Ample storage space: The products were commended for providing ample storage space, which customers found useful.
+        """]),
+
+        html.Td(["""
+        1. Poor installation and fitting: Customers complained about the poor installation and fitting of the products, particularly the beds. They mentioned gaps between the bed's structure and the floor, which led to dust accumulation. """, html.Br(),
+
+        """2. Defective pieces and poor customer service: Some customers received defective pieces and had a difficult time returning the product or getting it replaced. They also complained about the poor customer service from Wakefit, with slow responses and lack of assistance in resolving their issues..""", html.Br(),
+
+        """3. Quality and durability issues: Customers raised concerns about the quality and durability of the products. They mentioned issues like the chair's back snapping unexpectedly, the bed frame being made of thin plywood, and the wardrobe missing a locking slot. They also mentioned that the products were not as sturdy as they expected.
+        """]), 
+        ])
+
+row3 = html.Tr([html.Td("accessories"), 
+
+        html.Td("""Apologies, but we are unable to provide the top 5 features that customers liked about these products as all the reviews provided are negative."""),
+        html.Td(["""1. Quality and Durability: Many customers complained about the poor quality and durability of the products. They mentioned that the products, such as pillows and bean bags, lost their shape and comfort after a few weeks of use. Some also mentioned that the products tore apart easily, indicating poor material quality. """, html.Br(),
+
+        """2. Misleading Product Information: Customers felt misled by the product information provided. For example, some customers who purchased bean bags complained that the size of the product was smaller than what was advertised. Others mentioned that the product did not come with the promised additional items, such as extra synthetic fibre for pillows or extra beans for bean bags.""",
+        html.Br(),    
+        """3. Customer Service: There were complaints about poor customer service, with customers mentioning that they were asked to delete negative reviews in exchange for additional product components that were never delivered. Others mentioned that their issues were not addressed satisfactorily, and they felt that the company was not committed to resolving their concerns."""])
+
+        ])
+
+row4 = html.Tr([html.Td("sofa"), 
+
+    html.Td(["""Apologies, but the reviews provided do not contain any positive aspects or features that customers liked about the products."""]),
+
+    html.Td(["""
+    1. Poor Quality: Customers complained about the poor quality of the products, including uneven ottoman tops, loose legs, and fabric threads coming out from the sofa stitches. Some customers also mentioned that the products were not durable and started showing defects within a few months. """, html.Br(),
+
+    """2. Inadequate Customer Support: Customers were not satisfied with the customer support provided by the company. They reported unprofessional behavior, lack of follow-up on complaints, and inadequate repairs. Some customers also mentioned that the company did not honor the warranty of the products.""", html.Br(),
+
+    """3. Delivery Issues: Customers faced issues with the delivery of the products. Some reported that the products were delivered in a poor condition, covered in dirt and grime. Others mentioned that the delivery was delayed, and the delivery personnel behaved rudely."""]), 
+
+               
+               ])
+
+row5 = html.Tr([html.Td("hw furniture"), 
+
+
+    html.Td(["""
+    1. Quality of wood: Some customers were pleased with the quality of the wood used in the product.""", html.Br(),
+
+    """2. Product design: The design of the product was appreciated by some customers who found it aesthetically pleasing.""", html.Br(),
+
+    """3. Customer service: Despite some negative experiences, there were customers who appreciated the promptness and courtesy of the customer service team.
+    """]),
+
+    html.Td(["""
+    1. Poor Quality and Durability: Many customers complained about the poor quality of the products, including the use of low-quality materials, poor finishing, and products breaking or getting damaged within a short period of use. """, html.Br(),
+
+    """2. Delivery and Installation Issues: Customers faced issues with delayed deliveries, multiple delivery attempts, and poor installation services. Some customers also mentioned that the installation process was complicated and not user-friendly.""", html.Br(),
+
+    """3. Poor Customer Service: Customers were dissatisfied with the customer service provided by Wakefit. Complaints included unresponsiveness, lack of assistance in resolving product issues, and difficulties in getting refunds or replacements.
+    """]), 
+               
+               
+               
+               ])
+
+
+table_body = [html.Tbody([row1, row2, row3, row4,row5])]
+llm_summary_table = dbc.Table(table_header + table_body, bordered=True,style = {
+                     'fontFamily': 'Arial',
+                      'fontSize': '12px'
+                  })
+
+
 
 content_summary_table = dbc.Row(
     [
@@ -505,6 +556,15 @@ content_first_row = dbc.Row([
         md=3
     )
 ])
+
+content_star_rating_row = dbc.Row(
+    [
+        dbc.Col(
+            dcc.Graph(id='graph_star_rating'), md=12
+        ),
+    ]
+)
+
 
 content_product_rating_row = dbc.Row(
     [
@@ -617,8 +677,12 @@ content = html.Div(
         html.H2('Vire Insights | VoC v1.0', style=TEXT_STYLE),
         content_summary_row,
         html.Br(),
+        llm_summary_table,
+        html.Br(),
         content_summary_table,
         html.Hr(),
+        content_star_rating_row,
+        html.Br(),
         content_product_rating_row, 
         html.Hr(),
         html.H4('Overall summary for selected time window', style=TEXT_STYLE),
@@ -697,8 +761,7 @@ def update_card_text_1(n_clicks, start_date, end_date,star_rating,product_parent
     return len(temp_df),len(temp_df)
 
 ## POSITIVE REVIEWS
-@app.callback(
-    [Output('card_text_2', 'children'),
+@app.callback([Output('card_text_2', 'children'),
     Output('card_text_2_sub', 'children')
     ],
     [Input('submit_button', 'n_clicks'),
@@ -736,8 +799,7 @@ def update_card_text_2(n_clicks, start_date, end_date,star_rating,product_parent
 
 
 ## NEGATIVE REVIEWS
-@app.callback(
-    [Output('card_text_3', 'children'),
+@app.callback([Output('card_text_3', 'children'),
     Output('card_text_3_sub', 'children')
     ],
     [Input('submit_button', 'n_clicks'),
@@ -778,8 +840,7 @@ def update_card_text_3(n_clicks, start_date, end_date,star_rating, product_paren
 
 
 ## NEGATIVE REVIEWS
-@app.callback(
-    [Output('card_text_4', 'children'),
+@app.callback([Output('card_text_4', 'children'),
     Output('card_text_4_sub', 'children')
     ],
     [Input('submit_button', 'n_clicks'),
@@ -814,6 +875,131 @@ def update_card_text_4(n_clicks, start_date, end_date,star_rating, product_paren
     pct_num = round(100*len(temp_df)/deno,1)
     pct = str('({} %)'.format(pct_num))
     return len(temp_df), pct
+
+
+
+
+
+
+
+@app.callback(
+    Output('graph_star_rating', 'figure'),
+    [Input('submit_button', 'n_clicks'),
+    Input('my-date-picker-range', 'start_date'),
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('product_parent', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('product_id', 'value'),
+    State('platform','value')
+    ]
+    )
+
+def update_graph_star_rating(n_clicks, start_date, end_date,star_rating, product_parent,# sentiment_list, 
+                   verified_purchase, product_id, platform):
+
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+
+    print("*************** UPDATE LINE CHART *********************")
+    filt_dict = {'star_rating':star_rating,
+               #  'sentiment_tag': sentiment_list, 
+                 'product_parent' : product_parent,
+                  'verified_purchase':verified_purchase, 
+                 'product_id' : product_id,
+                 'platform' : platform
+                }
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+
+
+    for key, val in filt_dict_updated.items():
+        temp_df = temp_df[temp_df[key].isin(val)]
+
+    #grouped_df = temp_df.groupby(['review_date','sentiment_tag'], as_index = False)['review_id'].count()
+    grouped_df = temp_df.groupby(['Week','star_rating'], as_index = False)['review_id'].count()
+    grouped_df = grouped_df.fillna(0)
+
+
+    pivot_df = grouped_df.copy(deep=True)
+    pivot_df['Week']  = pivot_df['Week'].apply({lambda x :int(x)})         
+    pivot_df = pivot_df.sort_values(['Week'], ascending = True)    
+    
+    x = sorted(pivot_df['Week'])
+    print(x)
+    y1 = pivot_df['review_id']
+                       
+    if len(pivot_df) >0 :
+        tick_count = int(max(1,round((len(pivot_df)/10),0)))
+        # fig1 = px.line(x=pivot_df['Week'], y = pivot_df['review_id'],#pivot_df['pos_cc']],
+        #               color_discrete_sequence=["#F6635C"],labels={
+        #                                                         "review_id": "Review Count", 
+        #                                                         }
+        #              )
+        
+        fig1 = px.line(x=pivot_df['Week'], y = pivot_df['review_id'], color =pivot_df['star_rating'],
+             labels={"star_rating": "Star Rating"})
+        fig1.update_traces(
+            hovertemplate="<br>".join([
+                "Week: %{x}",
+                "Review Count: %{y}"
+            ]),
+
+            )
+
+
+        layout = go.Layout(title = "Review trend for each star rating",showlegend = True)
+
+        fig = go.Figure(data=fig1.data ,#+ fig2.data, 
+                        layout = layout)
+
+        fig.update_traces(showlegend=True)
+        fig.update_layout(legend_title_text='Review count')
+
+        # Update AXES name and title 
+        fig.update_xaxes(title='Week')
+        fig.update_xaxes(linecolor='#61677A')
+
+        fig.update_yaxes(title='#Reviews')
+        fig.update_yaxes(linecolor='#61677A')
+
+#         fig.update_xaxes(tickangle=-45,
+#                      tickmode = 'array',
+#                      tickvals = grouped_df['Week'][0::tick_count],
+#                      #ticktext= [d.strftime('%Y-%m-%d') for d in datelist]
+#                         )
+
+        fig.update_layout(
+            {
+            'plot_bgcolor' :'rgba(0,0,0,0)',
+            }
+                )
+    else :
+        return {
+        "layout": {
+            "xaxis": {
+                "visible": True
+            },
+            "yaxis": {
+                "visible": True
+            },
+            "annotations": [
+                {
+                    "text": "Add more data",
+                    "xref": "paper",
+                    "yref": "paper",
+                    "showarrow": False,
+                    "font": {
+                        "size": 28
+                    }
+                }
+            ]
+        }
+    }
+        
+    return fig
+
+
+
 
 
 
