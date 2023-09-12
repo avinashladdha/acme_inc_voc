@@ -73,6 +73,11 @@ data['product_parent'] = data['product_parent'].str.lower()
 data['product_id'] = data['product_id'].str.lower()
 data['platform'] = data['platform'].str.lower()
 data = data[data['Week']!='c']
+
+## Add first date of week 
+data['review_date'] = pd.to_datetime(data['review_date'])
+data['week_start'] = data['review_date'].apply( lambda x: x - timedelta(days=x.weekday()))
+print(data[['review_date','week_start']])
 # Product Type = Product parent
 # Sub Product Type = Prouct id
 
@@ -104,22 +109,22 @@ rating_df_gpd = rating_df_gpd[rating_df_gpd['Sub Product Type']!='-']
 # calculating date wise weighted rating of the products 
 
 ## Building a top_product sentiment table 
-product_rating_df = data.groupby(['Week','product_parent','star_rating'], as_index = False)['review_id'].count()
+product_rating_df = data.groupby(['week_start','product_parent','star_rating'], as_index = False)['review_id'].count()
 
-product_rating_df = product_rating_df[product_rating_df['review_id']>10]
+
 product_rating_df['star_rating'] =product_rating_df['star_rating'].astype(float)
 product_rating_df['review_id'] =product_rating_df['review_id'].astype(float)
 product_rating_df['rating_mult'] = product_rating_df['star_rating']*product_rating_df['review_id']
 
 
-product_rating_df_gpd = product_rating_df.groupby(['product_parent','Week'], as_index= False).apply(lambda x: x['rating_mult'].sum()/x['review_id'].sum())
-product_rating_df_gpd.columns = ['Product Parent','Week','Weighted Rating']
+product_rating_df_gpd = product_rating_df.groupby(['product_parent','week_start'], as_index= False).apply(lambda x: x['rating_mult'].sum()/x['review_id'].sum())
+product_rating_df_gpd.columns = ['Product Parent','week_start','Weighted Rating']
 product_rating_df_gpd['Weighted Rating'] = product_rating_df_gpd['Weighted Rating'].apply(lambda x : round(x,2))
 product_rating_df_gpd = product_rating_df_gpd.sort_values(['Weighted Rating'], ascending = False)
 
 ##### making static table for top 
 product_rating_df_gpd_static = product_rating_df.groupby(['product_parent'], as_index= False).agg({'rating_mult':'sum','review_id':'sum'})
-
+product_rating_df_gpd_static = product_rating_df_gpd_static[product_rating_df_gpd_static['review_id']>10]
 product_rating_df_gpd_static['weighted_rating'] = round(product_rating_df_gpd_static['rating_mult']/product_rating_df_gpd_static['review_id'],2)
 product_rating_df_gpd_static = product_rating_df_gpd_static.drop(['rating_mult'], axis= 1)
 product_rating_df_gpd_static.columns = ['Product Type','Review Count','Product Rating']
@@ -132,8 +137,8 @@ print(product_rating_df_gpd_static)
 data['review_date'] = pd.to_datetime(data['review_date'])
 #data['sentiment_tag'] = data['sentiment_tag'].fillna('NA')
 data['star_rating'] = data['star_rating'].apply({lambda x : x.astype('str')})
-data['star_rating'] = data['star_rating'].replace(to_replace=["1.0","2.0","3.0","4.0"],
-           value=["1","2","3","4"])
+data['star_rating'] = data['star_rating'].replace(to_replace=["1.0","2.0","3.0"],
+           value=["1","2","3"])
 ## remove where sentiment cant be ascertained 
 data = data[~data['star_rating'].isna()]
 data = data[data['star_rating']!="4"]
@@ -148,7 +153,7 @@ keyword_df = top_keywords_df(flatten_list(data['tags'].to_list()))
 
 
 ## data reuired for functions
-filt_values = {'star_rating': ['1','2','3','4'], #'sentiment_tag': ['POSITIVE','NEGATIVE'],
+filt_values = {'star_rating': ['1','2','3'], #'sentiment_tag': ['POSITIVE','NEGATIVE'],
              'verified_purchase': ['Y','N'],
                'product_id': list(data['product_id'].unique()),
                 'product_parent': list(data['product_parent'].unique()),
@@ -259,16 +264,16 @@ controls = dbc.FormGroup(
                         'label': 'Three',
                         'value': '3'
                     },
-                {
-                        'label': 'Four',
-                        'value': '4'
-                    },
-                {
-                        'label': 'Five',
-                        'value': '5'
-                    }
+                # {
+                #         'label': 'Four',
+                #         'value': '4'
+                #     },
+                # {
+                #         'label': 'Five',
+                #         'value': '5'
+                #     }
                 ],
-                value=['1','2','3','4'],  # default value
+                value=['1','2','3'],  # default value
                 multi=True
             ),
         html.Br(),
@@ -383,9 +388,6 @@ content_summary_row = dbc.Row([
 
 
 
-
-
-
 table_header = [
     html.Thead(html.Tr([html.Th("Product Type"), html.Th("Likes"),html.Th("Dislikes")]))
                 ]
@@ -491,12 +493,12 @@ content_summary_table = dbc.Row(
             dash_table.DataTable(
             id='table_top_products',
             columns=[{"name": i, "id": i} for i in rating_df_gpd.columns],
-            style_cell={'textAlign': 'center'},                style_cell_conditional=[
-                        {
-            'if': {'column_id': 'Sub Product Type'},
-                    'textAlign': 'left'
-                        }
-                        ],
+            style_cell={'textAlign': 'center'},
+            style_cell_conditional=[
+                                    {'if': {'column_id': 'Sub Product Type'},
+                                    'textAlign': 'left'}
+                                    ],
+
             data = rating_df_gpd.tail(5).to_dict('records')
         ), md=6 , style = {'width' : '5'}
         ),
@@ -617,7 +619,6 @@ content_star_rating_row = dbc.Row(
     ]
 )
 
-
 content_product_rating_row = dbc.Row(
     [
         dbc.Col(
@@ -672,14 +673,7 @@ content_third_row = dbc.Row(
         ),
              
              ]
-                ),
-        
-        
-        
-
-        
-        
-        
+                ), 
 
     ]
 )
@@ -694,9 +688,55 @@ content_fourth_row = dbc.Row(
     )
 
 
+content_dynamic_top_product_row = dbc.Row(
+    [
+
+         dbc.Col(
+            [
+            dash_table.DataTable(
+            id='table_top_products_dyn',
+            columns=[{"name": i, "id": i} for i in rating_df_gpd.columns],
+            style_cell={'textAlign': 'center'},
+                style_cell_conditional=[
+                        {
+            'if': {'column_id': 'Product Type'},
+                    'textAlign': 'left'
+                        }
+                        ]
+            #data=keyword_df.head(10).to_dict('records'),
+                ),
+             
+             ]
+         ),
+        
+        dbc.Col(
+            [
+            dash_table.DataTable(
+            id='table_top_products_parent_dyn',
+            columns=[{"name": i, "id": i} for i in product_rating_df_gpd_static.columns],
+            style_cell={'textAlign': 'center'},
+                style_cell_conditional=[
+                        {
+            'if': {'column_id': 'Product Type'},
+                    'textAlign': 'left'
+                        }
+                        ]
+            #data=keyword_df.head(10).to_dict('records'),
+                ),
+
+             
+             ]
+         ),
+        
+        
+
+    ]
+)
+
+
 content_fifth_row = dbc.Row(
     [
-        html.H4('Filtered User reviews (20 most recent)', style={
+        html.H4('Filtered User reviews (Most recent first)', style={
             'textAlign': 'Center'
         }),
         
@@ -710,12 +750,13 @@ content_fifth_row = dbc.Row(
             style_cell={'textAlign': 'left', 'minWidth': '80px', #'width': '50px',
                         'maxWidth': '1000px', 
                         'whiteSpace':'normal', 'height':'auto', 'lineHeight':'20px'},
-                style_cell_conditional=[
-                        {
-                    'if': {'column_id': ['Review Date','Star Rating']},
-                            'textAlign': 'center' ,'minWidth': '100px'
-                        }
-                        ]
+            style_cell_conditional=[
+                        {'if': {'column_id': ['Review Date','Star Rating']},
+                            'textAlign': 'center' ,'minWidth': '100px'}
+                        ],
+    
+            style_table={'height': '750px' ,'overflow': 'scroll'} ,
+                export_format="csv"
           
         ), md=12
         )
@@ -752,6 +793,8 @@ content = html.Div(
         #                                                                 'color': '#191970'
         #                                                             }),
         # content_sentiment_product_row,
+        html.Br(),
+        content_dynamic_top_product_row,
         html.Br(),
         html.H3('Review profiling', style=TEXT_STYLE),
         html.Div(    
@@ -974,15 +1017,15 @@ def update_graph_star_rating(n_clicks, start_date, end_date,star_rating, product
         temp_df = temp_df[temp_df[key].isin(val)]
 
     #grouped_df = temp_df.groupby(['review_date','sentiment_tag'], as_index = False)['review_id'].count()
-    grouped_df = temp_df.groupby(['Week','star_rating'], as_index = False)['review_id'].count()
+    grouped_df = temp_df.groupby(['week_start','star_rating'], as_index = False)['review_id'].count()
     grouped_df = grouped_df.fillna(0)
 
 
     pivot_df = grouped_df.copy(deep=True)
-    pivot_df['Week']  = pivot_df['Week'].apply({lambda x :int(x)})         
-    pivot_df = pivot_df.sort_values(['Week'], ascending = True)    
+    #pivot_df['Week']  = pivot_df['Week'].apply({lambda x :int(x)})         
+    pivot_df = pivot_df.sort_values(['week_start'], ascending = True)    
     
-    x = sorted(pivot_df['Week'])
+    x = sorted(pivot_df['week_start'])
     print(x)
     y1 = pivot_df['review_id']
                        
@@ -994,11 +1037,11 @@ def update_graph_star_rating(n_clicks, start_date, end_date,star_rating, product
         #                                                         }
         #              )
         
-        fig1 = px.line(x=pivot_df['Week'], y = pivot_df['review_id'], color =pivot_df['star_rating'],
+        fig1 = px.line(x=pivot_df['week_start'], y = pivot_df['review_id'], color =pivot_df['star_rating'],
              labels={"star_rating": "Star Rating"})
         fig1.update_traces(
             hovertemplate="<br>".join([
-                "Week: %{x}",
+                "Week of: %{x}",
                 "Review Count: %{y}"
             ]),
 
@@ -1096,29 +1139,29 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, product_parent,# 
         temp_df = temp_df[temp_df[key].isin(val)]
 
     #grouped_df = temp_df.groupby(['review_date','sentiment_tag'], as_index = False)['review_id'].count()
-    grouped_df = temp_df.groupby(['Week'], as_index = False)['review_id'].count()
+    grouped_df = temp_df.groupby(['week_start'], as_index = False)['review_id'].count()
     grouped_df = grouped_df.fillna(0)
 
     
     
     pivot_df = grouped_df.copy(deep=True)
-    pivot_df['Week']  = pivot_df['Week'].apply({lambda x :int(x)})         
-    pivot_df = pivot_df.sort_values(['Week'], ascending = True)    
+    #pivot_df['Week']  = pivot_df['Week'].apply({lambda x :int(x)})         
+    pivot_df = pivot_df.sort_values(['week_start'], ascending = True)    
     
-    x = sorted(pivot_df['Week'])
+    x = sorted(pivot_df['week_start'])
     print(x)
     y1 = pivot_df['review_id']
                        
     if len(pivot_df) >0 :
         tick_count = int(max(1,round((len(pivot_df)/10),0)))
-        fig1 = px.line(x=pivot_df['Week'], y = pivot_df['review_id'],#pivot_df['pos_cc']],
+        fig1 = px.line(x=pivot_df['week_start'], y = pivot_df['review_id'],#pivot_df['pos_cc']],
                       color_discrete_sequence=["#F6635C"],labels={
                                                                 "review_id": "Review Count", 
                                                                 }
                      )
         fig1.update_traces(
             hovertemplate="<br>".join([
-                "Week: %{x}",
+                "Week of: %{x}",
                 "Review Count: %{y}"
             ]),
 
@@ -1216,21 +1259,21 @@ def update_graph_product_rating(n_clicks, start_date, end_date,star_rating, prod
     
     temp_df['Week'] = temp_df['Week'].astype('int')
     
-    product_rating_df = temp_df.groupby(['Week','product_parent','star_rating'], as_index = False)['review_id'].count()
+    product_rating_df = temp_df.groupby(['week_start','product_parent','star_rating'], as_index = False)['review_id'].count()
     product_rating_df['star_rating'] =product_rating_df['star_rating'].astype(float)
     product_rating_df['review_id'] =product_rating_df['review_id'].astype(float)
     product_rating_df['rating_mult'] = product_rating_df['star_rating']*product_rating_df['review_id']
 
 
-    product_rating_df_gpd = product_rating_df.groupby(['product_parent','Week'], as_index= False).apply(lambda x: x['rating_mult'].sum()/x['review_id'].sum())
-    product_rating_df_gpd.columns = ['Product Parent','Week','Weighted Rating']
+    product_rating_df_gpd = product_rating_df.groupby(['product_parent','week_start'], as_index= False).apply(lambda x: x['rating_mult'].sum()/x['review_id'].sum())
+    product_rating_df_gpd.columns = ['Product Parent','Week of','Weighted Rating']
     product_rating_df_gpd['Weighted Rating'] = product_rating_df_gpd['Weighted Rating'].apply(lambda x : round(x,2))
     product_rating_df_gpd = product_rating_df_gpd.sort_values(['Weighted Rating'], ascending = False)
 
 
     temp_df = product_rating_df_gpd.copy(deep=True)
-    temp_df = temp_df.reset_index(drop=True).sort_values(['Week','Product Parent'], ascending = True)
-    fig = px.line(x=temp_df['Week'], y = temp_df['Weighted Rating'], color =temp_df['Product Parent'],
+    temp_df = temp_df.reset_index(drop=True).sort_values(['Week of','Product Parent'], ascending = True)
+    fig = px.line(x=temp_df['Week of'], y = temp_df['Weighted Rating'], color =temp_df['Product Parent'],
                  labels={"color": "Product Type", 
                                                                 })
     tick_count = int(max(1,round((len(temp_df)/10),0)))
@@ -1256,7 +1299,7 @@ def update_graph_product_rating(n_clicks, start_date, end_date,star_rating, prod
     
     fig.update_xaxes(tickangle=-45,
                  tickmode = 'array',
-                 tickvals = temp_df['Week'][0::tick_count],
+                 tickvals = temp_df['Week of'][0::tick_count],
                  #ticktext= [d.strftime('%Y-%m-%d') for d in datelist]
                     )
 
@@ -1315,45 +1358,6 @@ def update_graph_4(n_clicks, start_date, end_date,star_rating,product_parent, # 
     
         return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
 
-    
-@app.callback([Output('alert-no-wordcloud', 'children'),
-              Output('alert-no-table-kw', 'children')
-              ],
-        [Input('submit_button', 'n_clicks'),
-        Input('my-date-picker-range', 'start_date'),
-        Input('my-date-picker-range', 'end_date')],
-        [State('star_rating', 'value'), 
-         State('product_parent', 'value'), 
-         State('verified_purchase', 'value'), 
-         State('product_id', 'value'),
-         State('platform','value')
-         ]
-     )
-def handle_error(n_clicks, start_date, end_date,star_rating,product_parent ,# sentiment_list,
-                 verified_purchase, product_id, platform):
-    temp_df = data.query('review_date > @start_date & review_date < @end_date')
-    print("*************** TABLE OF KEYWORDS *********************")
-
-    filt_dict = {'star_rating':star_rating,
-                # 'sentiment_tag': sentiment_list, 
-                  'verified_purchase':verified_purchase,
-                 'product_parent' : product_parent,
-                 'product_id' : product_id,
-                 'platform' : platform
-                }
-    
-    filt_dict_updated = update_dictionary(filt_dict)
-
-
-    for key, val in filt_dict_updated.items():
-        #print("Filtering {}".format(key))
-        temp_df = temp_df[temp_df[key].isin(val)]
-        
-    if len(temp_df)<6:
-        ret_str = "Please add more parameters to display the wordcloud"
-        ret_str_kw = "Please add more parameters to display the frequency table."
-        
-        return "",""
 
 #####################################################################################
 
@@ -1403,6 +1407,126 @@ def update_keyword_table(n_clicks, start_date, end_date,star_rating,product_pare
         keyword_df =keyword_df.drop(['Frequency'], axis = 1)
         #print(keyword_df)
         return keyword_df.head(10).to_dict('records')
+    
+    
+    
+    
+    
+## TOP PRODUCT ON PRODUCT ID LEVEL  TABLE
+@app.callback(
+    Output('table_top_products_dyn', 'data'),
+    [Input('submit_button', 'n_clicks'),
+    Input('my-date-picker-range', 'start_date'),
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('product_parent', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('product_id', 'value'),
+     State('platform','value')
+     ]
+    )
+def update_keyword_table(n_clicks, start_date, end_date,star_rating,product_parent ,# sentiment_list,
+                         verified_purchase, product_id, platform):
+
+
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+    print("*************** TABLE OF KEYWORDS *********************")
+
+    filt_dict = {'star_rating':star_rating,
+                # 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'product_parent' : product_parent,
+                 'product_id' : product_id,
+                 'platform' : platform
+                }
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+
+
+    for key, val in filt_dict_updated.items():
+        #print("Filtering {}".format(key))
+        temp_df = temp_df[temp_df[key].isin(val)]
+
+    
+    
+    rating_df = temp_df.groupby(['product_id','star_rating'], as_index = False)['review_id'].count()
+
+    rating_df = rating_df[rating_df['review_id']>10]
+    rating_df['star_rating'] =rating_df['star_rating'].astype(float)
+    rating_df['review_id'] =rating_df['review_id'].astype(float)
+    rating_df['rating_mult'] = rating_df['star_rating']*rating_df['review_id']
+
+    #rating_df_gpd = rating_df.groupby(['product_id'], as_index= False).apply({lambda x: x['rating_mult'].sum()/x['review_id'].sum()})
+
+    rating_df_gpd = rating_df.groupby(['product_id'], as_index= False).agg({'rating_mult':'sum','review_id':'sum'})
+    rating_df_gpd['weighted_rating'] = round(rating_df_gpd['rating_mult']/rating_df_gpd['review_id'],2)
+    rating_df_gpd = rating_df_gpd.drop(['rating_mult'], axis= 1)
+    rating_df_gpd.columns = ['Sub Product Type','Review Count','Product Rating']
+    rating_df_gpd['Product Rating'] = rating_df_gpd['Product Rating'].apply(lambda x : round(x,2))
+    rating_df_gpd = rating_df_gpd.sort_values(['Product Rating'], ascending = True)
+    rating_df_gpd = rating_df_gpd[rating_df_gpd['Sub Product Type']!='-']
+    
+    
+    return rating_df_gpd.head(5).to_dict('records')
+    
+    
+    
+## TOP PRODUCT ON PRODUCT ID LEVEL  TABLE
+@app.callback(
+    Output('table_top_products_parent_dyn', 'data'),
+    [Input('submit_button', 'n_clicks'),
+    Input('my-date-picker-range', 'start_date'),
+    Input('my-date-picker-range', 'end_date')],
+    [State('star_rating', 'value'), 
+     State('product_parent', 'value'), 
+     State('verified_purchase', 'value'), 
+     State('product_id', 'value'),
+     State('platform','value')
+     ]
+    )
+def update_keyword_table(n_clicks, start_date, end_date,star_rating,product_parent ,# sentiment_list,
+                         verified_purchase, product_id, platform):
+
+
+    temp_df = data.query('review_date > @start_date & review_date < @end_date')
+    print("*************** TABLE OF KEYWORDS *********************")
+
+    filt_dict = {'star_rating':star_rating,
+                # 'sentiment_tag': sentiment_list, 
+                  'verified_purchase':verified_purchase,
+                 'product_parent' : product_parent,
+                 'product_id' : product_id,
+                 'platform' : platform
+                }
+    
+    filt_dict_updated = update_dictionary(filt_dict)
+
+
+    for key, val in filt_dict_updated.items():        #print("Filtering {}".format(key))
+        temp_df = temp_df[temp_df[key].isin(val)]
+
+        
+        
+    
+    product_rating_df = temp_df.groupby(['week_start','product_parent','star_rating'], as_index = False)['review_id'].count()
+    product_rating_df['star_rating'] =product_rating_df['star_rating'].astype(float)
+    product_rating_df['review_id'] =product_rating_df['review_id'].astype(float)
+    product_rating_df['rating_mult'] = product_rating_df['star_rating']*product_rating_df['review_id']
+
+
+    ##### making static table for top 
+    product_rating_df_gpd_static = product_rating_df.groupby(['product_parent'], as_index= False).agg({'rating_mult':'sum','review_id':'sum'})
+    product_rating_df_gpd_static = product_rating_df_gpd_static[product_rating_df_gpd_static['review_id']>10]
+    product_rating_df_gpd_static['weighted_rating'] = round(product_rating_df_gpd_static['rating_mult']/product_rating_df_gpd_static['review_id'],2)
+    product_rating_df_gpd_static = product_rating_df_gpd_static.drop(['rating_mult'], axis= 1)
+    product_rating_df_gpd_static.columns = ['Product Type','Review Count','Product Rating']
+    product_rating_df_gpd_static['Product Rating'] = product_rating_df_gpd_static['Product Rating'].apply(lambda x : round(x,2))
+    product_rating_df_gpd_static = product_rating_df_gpd_static.sort_values(['Product Rating'], ascending = True)
+
+    ret_df = product_rating_df_gpd_static.copy(deep=True)
+    return ret_df.to_dict('records')
+    
+    
     
 
 
@@ -1525,16 +1649,18 @@ def update_review_table(n_clicks, start_date, end_date,star_rating, product_pare
 
     for key, val in filt_dict_updated.items():
         temp_df = temp_df[temp_df[key].isin(val)]
-
+    
+    temp_df = temp_df.sort_values(['review_date'], ascending = False)
     temp_df = temp_df[review_cols]
     temp_df['review_date'] =  temp_df['review_date'].dt.strftime('%d-%m-%Y')
     
     temp_df.columns = ['Product Type','Sub Product Type','Star Rating','Review Date','Review Text']
-    temp_df = temp_df.sort_values(['Review Date'], ascending = False)
+    
     temp_df = temp_df.drop_duplicates(['Product Type','Sub Product Type','Star Rating', 'Review Text'], keep='first')
-
+    
+    
     if len(temp_df) >0:
-        return temp_df.head(20).to_dict('records')
+        return temp_df.to_dict('records') #temp_df.head(20).to_dict('records')
     
     else :
         return "Insufficient data"
