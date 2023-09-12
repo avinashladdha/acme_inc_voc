@@ -79,14 +79,25 @@ data = data[data['Week']!='c']
 # building rating_df prior to gvoid str/int/flot conversion issue 
 ## Building a top_product sentiment table 
 rating_df = data.groupby(['product_id','star_rating'], as_index = False)['review_id'].count()
+
+rating_df = rating_df[rating_df['review_id']>10]
 rating_df['star_rating'] =rating_df['star_rating'].astype(float)
 rating_df['review_id'] =rating_df['review_id'].astype(float)
 rating_df['rating_mult'] = rating_df['star_rating']*rating_df['review_id']
 
-rating_df_gpd = rating_df.groupby(['product_id'], as_index= False).apply(lambda x: x['rating_mult'].sum()/x['review_id'].sum())
-rating_df_gpd.columns = ['Sub Product Type','Product Rating']
+#rating_df_gpd = rating_df.groupby(['product_id'], as_index= False).apply({lambda x: x['rating_mult'].sum()/x['review_id'].sum()})
+
+
+rating_df_gpd = rating_df.groupby(['product_id'], as_index= False).agg({'rating_mult':'sum','review_id':'sum'})
+
+rating_df_gpd['weighted_rating'] = round(rating_df_gpd['rating_mult']/rating_df_gpd['review_id'],2)
+rating_df_gpd = rating_df_gpd.drop(['rating_mult'], axis= 1)
+rating_df_gpd.columns = ['Sub Product Type','Review Count','Product Rating']
 rating_df_gpd['Product Rating'] = rating_df_gpd['Product Rating'].apply(lambda x : round(x,2))
-rating_df_gpd = rating_df_gpd.sort_values(['Product Rating'], ascending = False)
+rating_df_gpd = rating_df_gpd.sort_values(['Product Rating'], ascending = True)
+rating_df_gpd = rating_df_gpd[rating_df_gpd['Sub Product Type']!='-']
+
+
 
 
 
@@ -94,6 +105,8 @@ rating_df_gpd = rating_df_gpd.sort_values(['Product Rating'], ascending = False)
 
 ## Building a top_product sentiment table 
 product_rating_df = data.groupby(['Week','product_parent','star_rating'], as_index = False)['review_id'].count()
+
+product_rating_df = product_rating_df[product_rating_df['review_id']>10]
 product_rating_df['star_rating'] =product_rating_df['star_rating'].astype(float)
 product_rating_df['review_id'] =product_rating_df['review_id'].astype(float)
 product_rating_df['rating_mult'] = product_rating_df['star_rating']*product_rating_df['review_id']
@@ -104,6 +117,17 @@ product_rating_df_gpd.columns = ['Product Parent','Week','Weighted Rating']
 product_rating_df_gpd['Weighted Rating'] = product_rating_df_gpd['Weighted Rating'].apply(lambda x : round(x,2))
 product_rating_df_gpd = product_rating_df_gpd.sort_values(['Weighted Rating'], ascending = False)
 
+##### making static table for top 
+product_rating_df_gpd_static = product_rating_df.groupby(['product_parent'], as_index= False).agg({'rating_mult':'sum','review_id':'sum'})
+
+product_rating_df_gpd_static['weighted_rating'] = round(product_rating_df_gpd_static['rating_mult']/product_rating_df_gpd_static['review_id'],2)
+product_rating_df_gpd_static = product_rating_df_gpd_static.drop(['rating_mult'], axis= 1)
+product_rating_df_gpd_static.columns = ['Product Type','Review Count','Product Rating']
+product_rating_df_gpd_static['Product Rating'] = product_rating_df_gpd_static['Product Rating'].apply(lambda x : round(x,2))
+product_rating_df_gpd_static = product_rating_df_gpd_static.sort_values(['Product Rating'], ascending = True)
+
+
+print(product_rating_df_gpd_static)
 # making change in data df 
 data['review_date'] = pd.to_datetime(data['review_date'])
 #data['sentiment_tag'] = data['sentiment_tag'].fillna('NA')
@@ -113,6 +137,11 @@ data['star_rating'] = data['star_rating'].replace(to_replace=["1.0","2.0","3.0",
 ## remove where sentiment cant be ascertained 
 data = data[~data['star_rating'].isna()]
 data = data[data['star_rating']!="4"]
+
+
+
+print(data['review_date'].min())
+print(data['review_date'].max())
 #making a keyword dataframe
 keyword_df = top_keywords_df(flatten_list(data['tags'].to_list()))
 
@@ -126,7 +155,7 @@ filt_values = {'star_rating': ['1','2','3','4'], #'sentiment_tag': ['POSITIVE','
                'platform': ['amazon','flipkart'],
               }
 
-review_cols = ['product_id','review_date','review_body']
+review_cols = ['product_parent','product_id','star_rating','review_date','review_body']
 
 # the style arguments for the sidebar.
 SIDEBAR_STYLE = {
@@ -173,7 +202,7 @@ controls = dbc.FormGroup(
                 display_format = 'DD-MM-YYYY',
                 min_date_allowed=date(2022, 1, 5),
                 max_date_allowed=date(2023, 10, 31),
-                initial_visible_month=date(2023, 7, 16),
+                initial_visible_month=date(2022,11, 1),
                 end_date=date(2023, 9, 30), 
                 start_date=date(2022, 11, 1),
 
@@ -191,7 +220,7 @@ controls = dbc.FormGroup(
                                 }
                         ),
             html.Div(id='output-container-date-picker-range'),
-            html.P('Reviews time duration : 1 Jan 2021 - 31 Aug 2023', style={
+            html.P('Reviews time duration :  November 2022 - September 2023', style={
                 'textAlign': 'center',"width": "100%", 'font-size': '12px'
             })
         ,
@@ -274,13 +303,13 @@ controls = dbc.FormGroup(
             id='product_parent',
             options=[{"label":str(i),"value":str(i)} for i in data['product_parent'].unique()
             ],
-            value=list(data['product_parent'].unique())[0:10],  # default value
+            value=list(data['product_parent'].unique()),  # default value
             multi=True,
             style={
                 'maxHeight' :'400px',
                 'minHeight' :'50px',
-                #'height' :'200px',
-                #'overflow-y':'auto'
+                # 'height' :'200px',
+                # 'overflow-y':'auto'
 
             }
         )]),
@@ -294,13 +323,13 @@ controls = dbc.FormGroup(
             id='product_id',
             options=[{"label":str(i),"value":str(i)} for i in data['product_id'].unique()
             ],
-            value=list(data['product_id'].unique())[0:10],  # default value
+            value=list(data['product_id'].unique()),  # default value
             multi=True,
             style={
-                'maxHeight' :'400px',
+               # 'maxHeight' :'500px',
                 'minHeight' :'50px',
-                #'height' :'200px',
-                #'overflow-y':'auto'
+                'height' :'150px',
+                'overflow-y':'scroll'
 
             }
         )]),
@@ -354,9 +383,6 @@ content_summary_row = dbc.Row([
 
 
 
-
-
-
 table_header = [
     html.Thead(html.Tr([html.Th("Product Type"), html.Th("Likes"),html.Th("Dislikes")]))
                 ]
@@ -395,7 +421,13 @@ row2 = html.Tr([html.Td("ew furniture"),
 
 row3 = html.Tr([html.Td("accessories"), 
 
-        html.Td("""Apologies, but we are unable to provide the top 5 features that customers liked about these products as all the reviews provided are negative."""),
+        html.Td(["""1. The products are initially comfortable and well-designed, providing a positive first impression.""", html.Br(),
+
+        """2. The products are easy to use and set up, with items like pillows growing in size once removed from the packaging.""",
+        html.Br(),    
+        """3. The products initially provide good support and cushioning, particularly in the case of the pillows."""])
+                
+                ,
         html.Td(["""1. Quality and Durability: Many customers complained about the poor quality and durability of the products. They mentioned that the products, such as pillows and bean bags, lost their shape and comfort after a few weeks of use. Some also mentioned that the products tore apart easily, indicating poor material quality. """, html.Br(),
 
         """2. Misleading Product Information: Customers felt misled by the product information provided. For example, some customers who purchased bean bags complained that the size of the product was smaller than what was advertised. Others mentioned that the product did not come with the promised additional items, such as extra synthetic fibre for pillows or extra beans for bean bags.""",
@@ -451,12 +483,7 @@ llm_summary_table = dbc.Table(table_header + table_body, bordered=True,style = {
 
 
 content_summary_table = dbc.Row(
-    [
-        html.Br(),
-        html.P('Worst Products and their Weighted rating:', style={
-            'textAlign': 'left','padding':'30px', 'font-size': '20px'
-        }),
-        
+    [        
         dbc.Col(
             dash_table.DataTable(
             id='table_top_products',
@@ -468,8 +495,28 @@ content_summary_table = dbc.Row(
                         }
                         ],
             data = rating_df_gpd.tail(5).to_dict('records')
-        ), md=5
+        ), md=6 , style = {'width' : '5'}
+        ),
+        
+        
+        
+        dbc.Col(
+            dash_table.DataTable(
+            id='table_top_products_parent',
+            columns=[{"name": i, "id": i} for i in product_rating_df_gpd_static.columns],
+            style_cell={'textAlign': 'center'},                
+                style_cell_conditional=[
+                        {
+            'if': {'column_id': 'Product Type'},
+                    'textAlign': 'left'
+                        }
+                        ],
+            data = product_rating_df_gpd_static.tail(5).to_dict('records')
+        ), md=6
         )
+        
+        
+        
     ]
                         )
 
@@ -495,16 +542,16 @@ content_first_row = dbc.Row([
 
                 dbc.CardBody(
                     [
-                        html.H4('Total 1 star Reviews', className='card-title', style=CARD_TEXT_STYLE),
-                        html.P('(% of total)',
-                              style={
-                                'textAlign': 'center',"width": "100%", 'font-size': '10px'
-                                    }
-                              ),
-                        html.P(id='card_text_2', children='children', style=CARD_TEXT_STYLE),
-                        html.P(id='card_text_2_sub', children='children', style={
-                                'textAlign': 'center',"width": "100%", 'font-size': '9px'
-                                    }),
+                        html.H4('1 Star Reviews (%)', className='card-title', style=CARD_TEXT_STYLE),
+                    
+                              # style={
+                              #   'textAlign': 'center',"width": "100%", 'font-size': '10px'
+                              #       }
+                              # ),
+                        html.P(id='card_text_2', children='children', style=CARD_TEXT_STYLE)
+                        # html.P(id='card_text_2_sub', children='children', style={
+                        #         'textAlign': 'center',"width": "100%", 'font-size': '9px'
+                        #             }),
                     ]
                     ,style={"height": "10rem"}
                 ),
@@ -518,16 +565,16 @@ content_first_row = dbc.Row([
             [
                 dbc.CardBody(
                     [
-                        html.H4('Total 2 star Reviews', className='card-title', style=CARD_TEXT_STYLE),
-                        html.P('(% of total)',
-                              style={
-                                'textAlign': 'center',"width": "100%", 'font-size': '10px'
-                                    }
-                              ),
-                        html.P(id='card_text_3', children='children', style=CARD_TEXT_STYLE),
-                        html.P(id='card_text_3_sub', children='children', style={
-                                'textAlign': 'center',"width": "100%", 'font-size': '9px'
-                                    }),
+                        html.H4('2 Star Reviews (%)', className='card-title', style=CARD_TEXT_STYLE),
+                      
+                              # style={
+                              #   'textAlign': 'center',"width": "100%", 'font-size': '10px'
+                              #       }
+                              # ),
+                        html.P(id='card_text_3', children='children', style=CARD_TEXT_STYLE)
+                        # html.P(id='card_text_3_sub', children='children', style={
+                        #         'textAlign': 'center',"width": "100%", 'font-size': '9px'
+                        #             }),
                     ],style={"height": "10rem"}
                 ),
             ]
@@ -540,17 +587,17 @@ content_first_row = dbc.Row([
             [
                 dbc.CardBody(
                     [
-                        html.H4('Total 3 star Reviews', className='card-title', style=CARD_TEXT_STYLE),
-                        html.P('(% of total)',
-                              style={
-            'textAlign': 'center',"width": "100%", 'font-size': '10px'
-                                    }
+                        html.H4('3 Star Reviews (%)', className='card-title', style=CARD_TEXT_STYLE),
+                        
+#                               style={
+#             'textAlign': 'center',"width": "100%", 'font-size': '10px'
+#                                     }
                               
-                              ),
-                        html.P(id='card_text_4', children=' ', style=CARD_TEXT_STYLE),
-                        html.P(id='card_text_4_sub', children='children', style={
-                                'textAlign': 'center',"width": "100%", 'font-size': '9px'
-                                    }),
+                              #),
+                        html.P(id='card_text_4', children=' ', style=CARD_TEXT_STYLE)
+                        # html.P(id='card_text_4_sub', children='children', style={
+                        #         'textAlign': 'center',"width": "100%", 'font-size': '9px'
+                        #             }),
                     ],style={"height": "10rem"}
                 ),
             ]
@@ -566,7 +613,6 @@ content_star_rating_row = dbc.Row(
         ),
     ]
 )
-
 
 content_product_rating_row = dbc.Row(
     [
@@ -654,7 +700,7 @@ content_fifth_row = dbc.Row(
         dbc.Col(
             dash_table.DataTable(
             id='table_reviews',
-            columns=[{"name": i, "id": i} for i in ['Sub Product Type','Review Date','Review Text']],
+            columns=[{"name": i, "id": i} for i in ['Product Type','Sub Product Type','Star Rating','Review Date','Review Text']],
             
                 
             style_cell={'textAlign': 'left', 'minWidth': '80px', #'width': '50px',
@@ -662,7 +708,7 @@ content_fifth_row = dbc.Row(
                         'whiteSpace':'normal', 'height':'auto', 'lineHeight':'20px'},
                 style_cell_conditional=[
                         {
-                    'if': {'column_id': 'Review Date'},
+                    'if': {'column_id': ['Review Date','Star Rating']},
                             'textAlign': 'center' ,'minWidth': '100px'
                         }
                         ]
@@ -676,16 +722,15 @@ content_fifth_row = dbc.Row(
 
 content = html.Div(
     [
-        html.H2('Vire Insights | VoC v1.0', style=TEXT_STYLE),
+        html.H2('Wakefit VoC | Vire Insights', style=TEXT_STYLE),
         content_summary_row,
         html.Br(),
         llm_summary_table,
         html.Br(),
+        html.P('Worst Products and their rating: (PT and SPT level)', style={
+            'textAlign': 'left','padding':'5px', 'font-size': '20px'
+        }),
         content_summary_table,
-        html.Hr(),
-        content_star_rating_row,
-        html.Br(),
-        content_product_rating_row, 
         html.Hr(),
         html.H4('Overall summary for selected time window', style=TEXT_STYLE),
         html.Hr(),
@@ -693,6 +738,10 @@ content = html.Div(
 
         html.Hr(),
         content_second_row,
+        html.Hr(),
+        content_star_rating_row,
+        html.Br(),
+        content_product_rating_row, 
         #content_sentiment_row,
         # html.H6('Top and bottom products based on sentiment score (for selected date ranges)', style={
         #                                                                 'textAlign': 'left',
@@ -706,8 +755,8 @@ content = html.Div(
         html.Hr(),
         content_third_row,
         html.Hr(),
-        content_fourth_row,
-        html.Hr(),
+        # content_fourth_row,
+        # html.Hr(),
         content_fifth_row
         
     ],
@@ -763,9 +812,7 @@ def update_card_text_1(n_clicks, start_date, end_date,star_rating,product_parent
     return len(temp_df),len(temp_df)
 
 ## POSITIVE REVIEWS
-@app.callback([Output('card_text_2', 'children'),
-    Output('card_text_2_sub', 'children')
-    ],
+@app.callback(Output('card_text_2', 'children'),
     [Input('submit_button', 'n_clicks'),
     Input('my-date-picker-range', 'start_date'),
     Input('my-date-picker-range', 'end_date')],
@@ -779,7 +826,7 @@ def update_card_text_1(n_clicks, start_date, end_date,star_rating,product_parent
 def update_card_text_2(n_clicks, start_date, end_date,star_rating,product_parent, #sentiment_list,
                        verified_purchase, product_id ,platform):
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
-    deno = len(temp_df)
+    
     print("*****************UPDATE CARD TEXT 2*******************")
     filt_dict = {'star_rating':star_rating,
                  'product_parent' : product_parent,
@@ -794,16 +841,20 @@ def update_card_text_2(n_clicks, start_date, end_date,star_rating,product_parent
     for key, val in filt_dict_updated.items():
         temp_df = temp_df[temp_df[key].isin(val)]
 
+        
+    deno = len(temp_df)
     temp_df = temp_df[(temp_df['star_rating']=="1")]
+    
     pct_num = round(100*len(temp_df)/deno,1)
-    pct = str('({} %)'.format(pct_num))
-    return len(temp_df) , pct
+    
+    pct = str('{} ({}%)'.format(len(temp_df),pct_num))
+
+
+    return (pct)
 
 
 ## NEGATIVE REVIEWS
-@app.callback([Output('card_text_3', 'children'),
-    Output('card_text_3_sub', 'children')
-    ],
+@app.callback(Output('card_text_3', 'children'),
     [Input('submit_button', 'n_clicks'),
     Input('my-date-picker-range', 'start_date'),
     Input('my-date-picker-range', 'end_date')],
@@ -819,7 +870,7 @@ def update_card_text_2(n_clicks, start_date, end_date,star_rating,product_parent
 def update_card_text_3(n_clicks, start_date, end_date,star_rating, product_parent, # sentiment_list,
                        verified_purchase, product_id, platform):
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
-    deno = len(temp_df)
+    
     print("*****************UPDATE CARD TEXT 3*******************")
     filt_dict = {'star_rating':star_rating,
                 # 'sentiment_tag': sentiment_list, 
@@ -834,17 +885,17 @@ def update_card_text_3(n_clicks, start_date, end_date,star_rating, product_paren
     for key, val in filt_dict_updated.items():
         temp_df = temp_df[temp_df[key].isin(val)]
         
+    deno = len(temp_df)
     temp_df = temp_df[temp_df['star_rating'].isin(["2"])]
     pct_num = round(100*len(temp_df)/deno,1)
-    pct = str('({} %)'.format(pct_num))
-    return len(temp_df), pct
+
+    pct = str('{} ({}%)'.format(len(temp_df),pct_num))
+    return pct
 
 
 
 ## NEGATIVE REVIEWS
-@app.callback([Output('card_text_4', 'children'),
-    Output('card_text_4_sub', 'children')
-    ],
+@app.callback(Output('card_text_4', 'children'),
     [Input('submit_button', 'n_clicks'),
     Input('my-date-picker-range', 'start_date'),
     Input('my-date-picker-range', 'end_date')],
@@ -859,7 +910,7 @@ def update_card_text_3(n_clicks, start_date, end_date,star_rating, product_paren
 def update_card_text_4(n_clicks, start_date, end_date,star_rating, product_parent, # sentiment_list,
                        verified_purchase, product_id, platform):
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
-    deno = len(temp_df)
+    
     print("*****************UPDATE CARD TEXT 3*******************")
     filt_dict = {'star_rating':star_rating,
                 # 'sentiment_tag': sentiment_list, 
@@ -873,10 +924,11 @@ def update_card_text_4(n_clicks, start_date, end_date,star_rating, product_paren
     for key, val in filt_dict_updated.items():
         temp_df = temp_df[temp_df[key].isin(val)]
         
+    deno = len(temp_df)
     temp_df = temp_df[temp_df['star_rating'].isin(["3"])]
     pct_num = round(100*len(temp_df)/deno,1)
-    pct = str('({} %)'.format(pct_num))
-    return len(temp_df), pct
+    pct = str('{} ({}%)'.format(len(temp_df),pct_num))
+    return pct
 
 
 
@@ -949,7 +1001,7 @@ def update_graph_star_rating(n_clicks, start_date, end_date,star_rating, product
             )
 
 
-        layout = go.Layout(title = "Review trend for each star rating",showlegend = True)
+        layout = go.Layout(title = "Review trend for each star rating (Weekly)",showlegend = True)
 
         fig = go.Figure(data=fig1.data ,#+ fig2.data, 
                         layout = layout)
@@ -1069,7 +1121,7 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, product_parent,# 
             )
 
 
-        layout = go.Layout(title = "Customer Review counts",showlegend = True)
+        layout = go.Layout(title = "Customer Review counts (Weekly)",showlegend = True)
 
         fig = go.Figure(data=fig1.data ,#+ fig2.data, 
                         layout = layout)
@@ -1473,9 +1525,9 @@ def update_review_table(n_clicks, start_date, end_date,star_rating, product_pare
     temp_df = temp_df[review_cols]
     temp_df['review_date'] =  temp_df['review_date'].dt.strftime('%d-%m-%Y')
     
-    temp_df.columns = ['Sub Product Type','Review Date','Review Text']
+    temp_df.columns = ['Product Type','Sub Product Type','Star Rating','Review Date','Review Text']
     temp_df = temp_df.sort_values(['Review Date'], ascending = False)
-    temp_df = temp_df.drop_duplicates(['Sub Product Type', 'Review Text'], keep='first')
+    temp_df = temp_df.drop_duplicates(['Product Type','Sub Product Type','Star Rating', 'Review Text'], keep='first')
 
     if len(temp_df) >0:
         return temp_df.head(20).to_dict('records')
@@ -1495,7 +1547,7 @@ def update_review_table(n_clicks, start_date, end_date,star_rating, product_pare
         Output('product_id', 'value'),
         Output('platform','value')
         ],
-        [Input('clear_button', 'n_clicks')],
+        Input('clear_button', 'n_clicks'),
         )
 
 def clearDropDown1(n_clicks):
