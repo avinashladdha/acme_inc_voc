@@ -1467,7 +1467,7 @@ def update_keyword_table(n_clicks, start_date, end_date,star_rating,product_pare
     
     rating_df = temp_df.groupby(['product_id','star_rating'], as_index = False)['review_id'].count()
 
-    rating_df = rating_df[rating_df['review_id']>10]
+    
     rating_df['star_rating'] =rating_df['star_rating'].astype(float)
     rating_df['review_id'] =rating_df['review_id'].astype(float)
     rating_df['rating_mult'] = rating_df['star_rating']*rating_df['review_id']
@@ -1481,7 +1481,7 @@ def update_keyword_table(n_clicks, start_date, end_date,star_rating,product_pare
     rating_df_gpd['Product Rating'] = rating_df_gpd['Product Rating'].apply(lambda x : round(x,2))
     rating_df_gpd = rating_df_gpd.sort_values(['Product Rating'], ascending = True)
     rating_df_gpd = rating_df_gpd[rating_df_gpd['Sub Product Type']!='-']
-    
+    #rating_df_gpd = rating_df_gpd[rating_df_gpd['review_id']>10]
     
     return rating_df_gpd.head(5).to_dict('records')
     
