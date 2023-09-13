@@ -140,7 +140,10 @@ data['star_rating'] = data['star_rating'].apply({lambda x : x.astype('str')})
 data['star_rating'] = data['star_rating'].replace(to_replace=["1.0","2.0","3.0"],
            value=["1","2","3"])
 ## remove where sentiment cant be ascertained 
-data = data[~data['star_rating'].isna()]
+
+
+data['star_rating'] = data['star_rating'].fillna('nan')
+#data = data[~data['star_rating'].isna()]
 data = data[data['star_rating']!="4"]
 
 
@@ -1140,41 +1143,55 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, product_parent,# 
         temp_df = temp_df[temp_df[key].isin(val)]
 
     #grouped_df = temp_df.groupby(['review_date','sentiment_tag'], as_index = False)['review_id'].count()
-    grouped_df = temp_df.groupby(['week_start'], as_index = False)['review_id'].count()
-    grouped_df = grouped_df.fillna(0)
+    
+    
+    
+    product_rating_df = temp_df.groupby(['week_start','star_rating'], as_index = False)['review_id'].count()
 
+
+    product_rating_df['star_rating'] =product_rating_df['star_rating'].astype(float)
+    product_rating_df['review_id'] =product_rating_df['review_id'].astype(float)
+    product_rating_df['rating_mult'] = product_rating_df['star_rating']*product_rating_df['review_id']
+
+
+    product_rating_df_gpd = product_rating_df.groupby(['week_start'], as_index= False).apply(lambda x: x['rating_mult'].sum()/x['review_id'].sum())
+    #print(product_rating_df_gpd)
+    product_rating_df_gpd.columns = ['week_start','Weighted Rating']
+    product_rating_df_gpd['Weighted Rating'] = product_rating_df_gpd['Weighted Rating'].apply(lambda x : round(x,2))
     
-    
-    pivot_df = grouped_df.copy(deep=True)
+
+
+        
+    pivot_df = product_rating_df_gpd.copy(deep=True)
     #pivot_df['Week']  = pivot_df['Week'].apply({lambda x :int(x)})         
     pivot_df = pivot_df.sort_values(['week_start'], ascending = True)    
     
     x = sorted(pivot_df['week_start'])
-    y1 = pivot_df['review_id']
+    y1 = pivot_df['Weighted Rating']
                        
     if len(pivot_df) >0 :
         tick_count = int(max(1,round((len(pivot_df)/10),0)))
-        fig1 = px.line(x=pivot_df['week_start'], y = pivot_df['review_id'],#pivot_df['pos_cc']],
+        fig1 = px.line(x=pivot_df['week_start'], y = pivot_df['Weighted Rating'],#pivot_df['pos_cc']],
                       color_discrete_sequence=["#F6635C"],labels={
-                                                                "review_id": "Review Count", 
+                                                                "Weighted Rating": "Weighted Rating", 
                                                                 }
                      )
         fig1.update_traces(
             hovertemplate="<br>".join([
                 "Week of: %{x}",
-                "Review Count: %{y}"
+                "Weighted Rating: %{y}"
             ]),
 
             )
 
 
-        layout = go.Layout(title = "Customer Review counts (Weekly)",showlegend = True)
+        layout = go.Layout(title = "Overall weighted rating (Weekly)",showlegend = True)
 
         fig = go.Figure(data=fig1.data ,#+ fig2.data, 
                         layout = layout)
 
         fig.update_traces(showlegend=True)
-        fig.update_layout(legend_title_text='Review count')
+        fig.update_layout(legend_title_text='Weighted Rating')
 
         # Update AXES name and title 
         fig.update_xaxes(title='Week')
