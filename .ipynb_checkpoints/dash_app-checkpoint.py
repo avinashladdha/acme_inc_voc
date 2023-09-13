@@ -88,7 +88,7 @@ data['week_start'] = data['review_date'].apply( lambda x: x - timedelta(days=x.w
 ## Building a top_product sentiment table 
 rating_df = data.groupby(['product_id','star_rating'], as_index = False)['review_id'].count()
 
-rating_df = rating_df[rating_df['review_id']>10]
+
 rating_df['star_rating'] =rating_df['star_rating'].astype(float)
 rating_df['review_id'] =rating_df['review_id'].astype(float)
 rating_df['rating_mult'] = rating_df['star_rating']*rating_df['review_id']
@@ -104,7 +104,7 @@ rating_df_gpd.columns = ['Sub Product Type','Review Count','Product Rating']
 rating_df_gpd['Product Rating'] = rating_df_gpd['Product Rating'].apply(lambda x : round(x,2))
 rating_df_gpd = rating_df_gpd.sort_values(['Product Rating'], ascending = True)
 rating_df_gpd = rating_df_gpd[rating_df_gpd['Sub Product Type']!='-']
-
+rating_df_gpd = rating_df_gpd[rating_df_gpd['Review Count']>10]
 
 
 
@@ -123,7 +123,7 @@ product_rating_df['rating_mult'] = product_rating_df['star_rating']*product_rati
 product_rating_df_gpd = product_rating_df.groupby(['product_parent','week_start'], as_index= False).apply(lambda x: x['rating_mult'].sum()/x['review_id'].sum())
 product_rating_df_gpd.columns = ['Product Parent','week_start','Weighted Rating']
 product_rating_df_gpd['Weighted Rating'] = product_rating_df_gpd['Weighted Rating'].apply(lambda x : round(x,2))
-product_rating_df_gpd = product_rating_df_gpd.sort_values(['Weighted Rating'], ascending = False)
+product_rating_df_gpd = product_rating_df_gpd.sort_values(['Weighted Rating'], ascending = True)
 
 ##### making static table for top 
 product_rating_df_gpd_static = product_rating_df.groupby(['product_parent'], as_index= False).agg({'rating_mult':'sum','review_id':'sum'})
@@ -503,7 +503,7 @@ content_summary_table = dbc.Row(
                     'textAlign': 'left'
                         }
                         ],
-            data = product_rating_df_gpd_static.tail(5).to_dict('records')
+            data = product_rating_df_gpd_static.head(5).to_dict('records')
         ), md=6
         ),
         
@@ -517,7 +517,7 @@ content_summary_table = dbc.Row(
                                     'textAlign': 'left'}
                                     ],
 
-            data = rating_df_gpd.tail(5).to_dict('records')
+            data = rating_df_gpd.head(5).to_dict('records')
         ), md=6 , style = {'width' : '5'}
         ),
         
@@ -1699,7 +1699,7 @@ def update_review_table(n_clicks, start_date, end_date,star_rating, product_pare
 def clearDropDown1(n_clicks):
     print("**************** CLEAR ALL FUNCTION ********************")
     if n_clicks != 0: #Don't clear options when loading page for the first time
-        return ['2023-08-01','2023-08-31',['1','2','3','4'],
+        return ['2023-08-01','2023-09-30',['1','2','3'],
                 list(data['product_parent'].unique()),#['POSITIVE','NEGATIVE'],
              ['Y','N'],
              list(data['product_id'].unique()),
