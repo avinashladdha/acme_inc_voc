@@ -791,7 +791,7 @@ content = html.Div(
         html.Hr(),
         content_star_rating_row,
         html.Br(),
-        html.H4('Worst performing products (based on filters)', style=TEXT_STYLE),
+        
         content_product_rating_row, 
         #content_sentiment_row,
         # html.H6('Top and bottom products based on sentiment score (for selected date ranges)', style={
@@ -800,6 +800,7 @@ content = html.Div(
         #                                                             }),
         # content_sentiment_product_row,
         html.Br(),
+        html.H4('Worst performing products (based on filters)', style=TEXT_STYLE),
         content_dynamic_top_product_row,
         html.Br(),
         html.H3('Review profiling', style=TEXT_STYLE),
