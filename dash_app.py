@@ -68,6 +68,9 @@ def update_dictionary(input_dict):
 list_adhoc = ['stars','Stars','STARS', 'star','don','nan','wakefit']
 stop_words = list(STOPWORDS) + list_adhoc
 data = pd.read_csv('./data/df_raw.csv')
+print(len(data))
+print(data.review_date.min())
+print(data.review_date.max())
 data = data.rename(columns={data.columns[0]: 'review_id'})
 data['product_parent'] = data['product_parent'].str.lower()
 data['product_id'] = data['product_id'].str.lower()
@@ -77,7 +80,7 @@ data = data[data['Week']!='c']
 ## Add first date of week 
 data['review_date'] = pd.to_datetime(data['review_date'])
 data['week_start'] = data['review_date'].apply( lambda x: x - timedelta(days=x.weekday()))
-print(data[['review_date','week_start']])
+
 # Product Type = Product parent
 # Sub Product Type = Prouct id
 
@@ -130,11 +133,8 @@ product_rating_df_gpd_static = product_rating_df_gpd_static.drop(['rating_mult']
 product_rating_df_gpd_static.columns = ['Product Type','Review Count','Product Rating']
 product_rating_df_gpd_static['Product Rating'] = product_rating_df_gpd_static['Product Rating'].apply(lambda x : round(x,2))
 product_rating_df_gpd_static = product_rating_df_gpd_static.sort_values(['Product Rating'], ascending = True)
-
-
-print(product_rating_df_gpd_static)
 # making change in data df 
-data['review_date'] = pd.to_datetime(data['review_date'])
+#data['review_date'] = pd.to_datetime(data['review_date'])
 #data['sentiment_tag'] = data['sentiment_tag'].fillna('NA')
 data['star_rating'] = data['star_rating'].apply({lambda x : x.astype('str')})
 data['star_rating'] = data['star_rating'].replace(to_replace=["1.0","2.0","3.0"],
@@ -145,8 +145,7 @@ data = data[data['star_rating']!="4"]
 
 
 
-print(data['review_date'].min())
-print(data['review_date'].max())
+
 #making a keyword dataframe
 keyword_df = top_keywords_df(flatten_list(data['tags'].to_list()))
 
@@ -443,7 +442,7 @@ row3 = html.Tr([html.Td("accessories"),
 
 row4 = html.Tr([html.Td("sofa"), 
 
-    html.Td(["""Apologies, but the reviews provided do not contain any positive aspects or features that customers liked about the products."""]),
+    html.Td(["""--"""]),
 
     html.Td(["""
     1. Poor Quality: Customers complained about the poor quality of the products, including uneven ottoman tops, loose legs, and fabric threads coming out from the sofa stitches. Some customers also mentioned that the products were not durable and started showing defects within a few months. """, html.Br(),
@@ -488,7 +487,23 @@ llm_summary_table = dbc.Table(table_header + table_body, bordered=True,style = {
 
 
 content_summary_table = dbc.Row(
-    [        
+    [       
+        
+        dbc.Col(
+            dash_table.DataTable(
+            id='table_top_products_parent',
+            columns=[{"name": i, "id": i} for i in product_rating_df_gpd_static.columns],
+            style_cell={'textAlign': 'center'},                
+                style_cell_conditional=[
+                        {
+            'if': {'column_id': 'Product Type'},
+                    'textAlign': 'left'
+                        }
+                        ],
+            data = product_rating_df_gpd_static.tail(5).to_dict('records')
+        ), md=6
+        ),
+        
         dbc.Col(
             dash_table.DataTable(
             id='table_top_products',
@@ -505,21 +520,7 @@ content_summary_table = dbc.Row(
         
         
         
-        dbc.Col(
-            dash_table.DataTable(
-            id='table_top_products_parent',
-            columns=[{"name": i, "id": i} for i in product_rating_df_gpd_static.columns],
-            style_cell={'textAlign': 'center'},                
-                style_cell_conditional=[
-                        {
-            'if': {'column_id': 'Product Type'},
-                    'textAlign': 'left'
-                        }
-                        ],
-            data = product_rating_df_gpd_static.tail(5).to_dict('records')
-        ), md=6
-        )
-        
+
         
         
     ]
@@ -690,25 +691,6 @@ content_fourth_row = dbc.Row(
 
 content_dynamic_top_product_row = dbc.Row(
     [
-
-         dbc.Col(
-            [
-            dash_table.DataTable(
-            id='table_top_products_dyn',
-            columns=[{"name": i, "id": i} for i in rating_df_gpd.columns],
-            style_cell={'textAlign': 'center'},
-                style_cell_conditional=[
-                        {
-            'if': {'column_id': 'Product Type'},
-                    'textAlign': 'left'
-                        }
-                        ]
-            #data=keyword_df.head(10).to_dict('records'),
-                ),
-             
-             ]
-         ),
-        
         dbc.Col(
             [
             dash_table.DataTable(
@@ -727,7 +709,23 @@ content_dynamic_top_product_row = dbc.Row(
              
              ]
          ),
-        
+         dbc.Col(
+            [
+            dash_table.DataTable(
+            id='table_top_products_dyn',
+            columns=[{"name": i, "id": i} for i in rating_df_gpd.columns],
+            style_cell={'textAlign': 'center'},
+                style_cell_conditional=[
+                        {
+            'if': {'column_id': 'Product Type'},
+                    'textAlign': 'left'
+                        }
+                        ]
+            #data=keyword_df.head(10).to_dict('records'),
+                ),
+             
+             ]
+         ),
         
 
     ]
@@ -755,8 +753,12 @@ content_fifth_row = dbc.Row(
                             'textAlign': 'center' ,'minWidth': '100px'}
                         ],
     
-            style_table={'height': '750px' ,'overflow': 'scroll'} ,
-                export_format="csv"
+            style_table={'height': '750px' ,
+                         'overflow': 'auto'
+                        } ,
+                export_format="csv",
+                page_size=5000
+               
           
         ), md=12
         )
@@ -772,7 +774,7 @@ content = html.Div(
         html.Br(),
         llm_summary_table,
         html.Br(),
-        html.P('Worst Products and their rating: (PT and SPT level)', style={
+        html.P('Worst Products and their rating:', style={
             'textAlign': 'left','padding':'5px', 'font-size': '20px'
         }),
         content_summary_table,
@@ -786,6 +788,7 @@ content = html.Div(
         html.Hr(),
         content_star_rating_row,
         html.Br(),
+        html.H4('Worst performing products (based on filters)', style=TEXT_STYLE),
         content_product_rating_row, 
         #content_sentiment_row,
         # html.H6('Top and bottom products based on sentiment score (for selected date ranges)', style={
@@ -836,7 +839,7 @@ app.layout = html.Div([sidebar, content])
 def update_card_text_1(n_clicks, start_date, end_date,star_rating,product_parent, # sentiment_list, 
                        verified_purchase, product_id, platform):
     temp_df = data.query('review_date > @start_date & review_date < @end_date')
-    
+    print("Card text 1 length : {}".format(len(temp_df)))
     print("***************UPDATE CARD TEXT 1*********************")
     filt_dict = {'star_rating':star_rating,
               #   'sentiment_tag': sentiment_list, 
@@ -852,7 +855,6 @@ def update_card_text_1(n_clicks, start_date, end_date,star_rating,product_parent
     for key, val in filt_dict_updated.items():
         print(key)
         print("Dataframe length : {}".format(len(temp_df)))
-        
         temp_df = temp_df[temp_df[key].isin(val)]
 
     
@@ -1026,7 +1028,6 @@ def update_graph_star_rating(n_clicks, start_date, end_date,star_rating, product
     pivot_df = pivot_df.sort_values(['week_start'], ascending = True)    
     
     x = sorted(pivot_df['week_start'])
-    print(x)
     y1 = pivot_df['review_id']
                        
     if len(pivot_df) >0 :
@@ -1149,7 +1150,6 @@ def update_graph_1(n_clicks, start_date, end_date,star_rating, product_parent,# 
     pivot_df = pivot_df.sort_values(['week_start'], ascending = True)    
     
     x = sorted(pivot_df['week_start'])
-    print(x)
     y1 = pivot_df['review_id']
                        
     if len(pivot_df) >0 :
@@ -1274,8 +1274,7 @@ def update_graph_product_rating(n_clicks, start_date, end_date,star_rating, prod
     temp_df = product_rating_df_gpd.copy(deep=True)
     temp_df = temp_df.reset_index(drop=True).sort_values(['Week of','Product Parent'], ascending = True)
     fig = px.line(x=temp_df['Week of'], y = temp_df['Weighted Rating'], color =temp_df['Product Parent'],
-                 labels={"color": "Product Type", 
-                                                                })
+                 labels={"color": "Product Type"})
     tick_count = int(max(1,round((len(temp_df)/10),0)))
     # fig = go.Figure(go.Scatter(mode="markers",x=temp_df['Week'], y=temp_df['Weighted Rating'], marker_color =temp_df['Product Parent'], line_shape='spline'))
     # Change title 
@@ -1290,8 +1289,7 @@ def update_graph_product_rating(n_clicks, start_date, end_date,star_rating, prod
     fig.update_yaxes(linecolor='#61677A')
     # # Update Legend name and title 
     fig.update_traces(
-            hovertemplate="<br>".join([
-                "Week: %{x}",
+    hovertemplate= "<br>".join(["Week: %{x}",
                 "Weighted Rating: %{y}"
             ]),
 
