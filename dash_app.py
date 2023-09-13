@@ -1699,7 +1699,7 @@ def update_review_table(n_clicks, start_date, end_date,star_rating, product_pare
 def clearDropDown1(n_clicks):
     print("**************** CLEAR ALL FUNCTION ********************")
     if n_clicks != 0: #Don't clear options when loading page for the first time
-        return ['2023-11-01','2023-09-30',['1','2','3'],
+        return ['2022-11-01','2023-09-30',['1','2','3'],
                 list(data['product_parent'].unique()),#['POSITIVE','NEGATIVE'],
              ['Y','N'],
              list(data['product_id'].unique()),
