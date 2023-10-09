@@ -376,7 +376,7 @@ sidebar = html.Div(
 
 content_summary_row = dbc.Row([
     dbc.Col([
-       html.P(["""OVERALL SUMMARY:\n\n""",html.Br(),"""The reviews highlight multiple issues with Wakefit products including poor quality, flawed design, and subpar customer service. Customers reported problems with mattresses being too soft, causing back pain, and not living up to the 'orthopedic' label. The delivery and assembly process was criticized for being inconvenient and damaging to the products. Some customers also reported receiving defective or damaged items, including beds with uneven legs, wardrobes with cracks, and sofas that arrived dirty and wet. Customer service was described as unresponsive and unhelpful in resolving these issues. The company's return policy was also criticized for being inconsistent across different platforms. Despite some positive comments about affordability and aesthetics, the overall sentiment was of disappointment and frustration."""],
+       html.P(["""OVERALL SUMMARY:\n\n""",html.Br(),"""The reviews highlight multiple issues with Acme Inc products including poor quality, flawed design, and subpar customer service. Customers reported problems with mattresses being too soft, causing back pain, and not living up to the 'orthopedic' label. The delivery and assembly process was criticized for being inconvenient and damaging to the products. Some customers also reported receiving defective or damaged items, including beds with uneven legs, wardrobes with cracks, and sofas that arrived dirty and wet. Customer service was described as unresponsive and unhelpful in resolving these issues. The company's return policy was also criticized for being inconsistent across different platforms. Despite some positive comments about affordability and aesthetics, the overall sentiment was of disappointment and frustration."""],
                   style={"border":"2px black solid",
                            "width" : "100%",
                             "height" :'100%',
@@ -404,7 +404,7 @@ row1 = html.Tr([html.Td("mattress"),
 
     """2. False Advertising and Reviews: Customers felt deceived by the positive reviews and felt that the brand was manipulating reviews. They also mentioned false promises made by the customer support regarding the adjustment period and return policy.""", html.Br(),
 
-    """3. Poor Customer Service: Customers were unhappy with the customer service provided by Wakefit. They mentioned issues with the return and replacement process, and felt that the brand did not stand behind their product."""])
+    """3. Poor Customer Service: Customers were unhappy with the customer service provided by Acme Inc. They mentioned issues with the return and replacement process, and felt that the brand did not stand behind their product."""])
            ])
 
 row2 = html.Tr([html.Td("ew furniture"), 
@@ -420,7 +420,7 @@ row2 = html.Tr([html.Td("ew furniture"),
         html.Td(["""
         1. Poor installation and fitting: Customers complained about the poor installation and fitting of the products, particularly the beds. They mentioned gaps between the bed's structure and the floor, which led to dust accumulation. """, html.Br(),
 
-        """2. Defective pieces and poor customer service: Some customers received defective pieces and had a difficult time returning the product or getting it replaced. They also complained about the poor customer service from Wakefit, with slow responses and lack of assistance in resolving their issues..""", html.Br(),
+        """2. Defective pieces and poor customer service: Some customers received defective pieces and had a difficult time returning the product or getting it replaced. They also complained about the poor customer service from Acme Inc, with slow responses and lack of assistance in resolving their issues..""", html.Br(),
 
         """3. Quality and durability issues: Customers raised concerns about the quality and durability of the products. They mentioned issues like the chair's back snapping unexpectedly, the bed frame being made of thin plywood, and the wardrobe missing a locking slot. They also mentioned that the products were not as sturdy as they expected.
         """]), 
@@ -473,7 +473,7 @@ row5 = html.Tr([html.Td("hw furniture"),
 
     """2. Delivery and Installation Issues: Customers faced issues with delayed deliveries, multiple delivery attempts, and poor installation services. Some customers also mentioned that the installation process was complicated and not user-friendly.""", html.Br(),
 
-    """3. Poor Customer Service: Customers were dissatisfied with the customer service provided by Wakefit. Complaints included unresponsiveness, lack of assistance in resolving product issues, and difficulties in getting refunds or replacements.
+    """3. Poor Customer Service: Customers were dissatisfied with the customer service provided by Acme Inc. Complaints included unresponsiveness, lack of assistance in resolving product issues, and difficulties in getting refunds or replacements.
     """]), 
                
                
@@ -772,7 +772,7 @@ content_fifth_row = dbc.Row(
 
 content = html.Div(
     [
-        html.H2('Wakefit VoC | Vire Insights', style=TEXT_STYLE),
+        html.H2('Acme Inc. VoC | Vire Insights', style=TEXT_STYLE),
         content_summary_row,
         html.Br(),
         llm_summary_table,
